@@ -36,17 +36,17 @@
 
 <h3>Adding a model</h3>
 
-1. <code>cp &lt;YOUR_MODEL&gt;.ckpt models/ldm/stable-diffusion-v1/&lt;YOUR_MODEL&gt;.ckpt</code>
+<ol><li><code>cp &lt;YOUR_MODEL&gt;.ckpt models/ldm/stable-diffusion-v1/&lt;YOUR_MODEL&gt;.ckpt</code></li>
 
-2. Update configs/models.yaml:<br>
+<li>Update configs/models.yaml:<br>
 <code>
 &lt;YOUR_MODEL&gt;_0-1:
     config: configs/stable-diffusion/v1-inference.yaml
     weights: models/ldm/stable-diffusion-v1/&lt;YOUR_MODEL&gt;.ckpt
     width: 512
     height: 512
-</code>
-
+</code></li>
+</ol>
 <h3>WaifuDiffusion Example Prompts</h3>
 
 WaifuDiffusion was trained on sequentially-weighted tokens derived from tags/keywords in the danbooru dataset. As a result, the safety filter is often unable to recognize NSFW generations and outputs get through the safety filter. Adding the "safebooru" keyword to the beginning of the prompt greatly decreases the chances of a NSFW output.
