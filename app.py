@@ -17,7 +17,7 @@ def api():
     args = request.args
 
     # Get models and configs
-    model = args.get("model", default="waifu-diffusion_1-2")
+    model = args.get("model", default="stable-diffusion_1-4")
     models = OmegaConf.load("configs/models.yaml")
     width = models[model].width
     height = models[model].height
