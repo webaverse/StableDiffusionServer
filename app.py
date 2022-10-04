@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, send_file
 app = Flask(__name__)
 from ldm.generate import Generate
 from omegaconf import OmegaConf
@@ -39,9 +39,9 @@ def api():
     }
 
     generation = Generate(weights=weights, config=config)
-    generation.prompt2png(**arg_dict, outdir="outputs/output111.png")
+    output = generation.prompt2png(**arg_dict, outdir="outputs/web_out")
 
-    return "done"
+    return send_file(output[0][0], mimetype="image/png")
 
 
 
