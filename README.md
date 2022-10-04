@@ -39,13 +39,16 @@
 <ol><li><code>cp &lt;YOUR_MODEL&gt;.ckpt models/ldm/stable-diffusion-v1/&lt;YOUR_MODEL&gt;.ckpt</code></li>
 
 <li>Update configs/models.yaml:<br>
-<code>
-&lt;YOUR_MODEL&gt;_0-1:<br>
-    &emsp;config: configs/stable-diffusion/v1-inference.yaml<br>
-    &emsp;weights: models/ldm/stable-diffusion-v1/&lt;YOUR_MODEL&gt;.ckpt<br>
-    &emsp;width: 512<br>
-    &emsp;height: 512<br>
-</code></li>
+<pre>
+&lt;YOUR_MODEL&gt;:
+    config: configs/stable-diffusion/v1-inference.yaml
+    weights: models/ldm/stable-diffusion-v1/&lt;YOUR_MODEL&gt;.ckpt
+    width: 512
+    height: 512
+</pre></li>
+<li>
+The model can then be called in the API using the name specified in models.yaml.
+</li>
 </ol>
 <h3>WaifuDiffusion Example Prompts</h3>
 
