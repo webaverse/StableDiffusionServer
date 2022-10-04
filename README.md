@@ -36,9 +36,9 @@
 
 <h3>Adding a model</h3>
 
-<code>cp &lt;YOUR_MODEL&gt;.ckpt models/ldm/stable-diffusion-v1/&lt;YOUR_MODEL&gt;.ckpt</code>
+1. <code>cp &lt;YOUR_MODEL&gt;.ckpt models/ldm/stable-diffusion-v1/&lt;YOUR_MODEL&gt;.ckpt</code>
 
-Update <code>configs/models.yaml</code>:<br>
+2. Update configs/models.yaml:<br>
 <code>
 &lt;YOUR_MODEL&gt;_0-1:
     config: configs/stable-diffusion/v1-inference.yaml
