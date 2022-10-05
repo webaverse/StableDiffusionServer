@@ -3,21 +3,16 @@ app = Flask(__name__)
 from ldm.generate import Generate
 from omegaconf import OmegaConf
 import random
+from multidict import MultiDict
 
+DEFAULT_MODEL = "stable-diffusion_1-4"
 
-@app.route("/")
+def get_png(args):
 
-def index():
-    return "hello world"
-
-
-@app.route("/api", methods=["GET", "POST"])
-def api():
-
-    args = request.args
+    #args = request.args
 
     # Get models and configs
-    model = args.get("model", default="stable-diffusion_1-4")
+    model = args.get("model", default=DEFAULT_MODEL)
     models = OmegaConf.load("configs/models.yaml")
     width = models[model].width
     height = models[model].height
@@ -44,32 +39,23 @@ def api():
     return send_file(output[0][0], mimetype="image/png")
 
 
+@app.route("/")
+def index():
+    return "<h1>HTTP Error 403: Forbidden</h1>", 403
 
 
-    """
-    init_params = {
-        "iterations": request_json["iterations"] or 1,
-        "steps": request_json["steps"] or 50,
-        "cfg_scale": request_json["cfg_scale"] or 7.5,
-        "weights": weights,
-        "config": config,
-        "width": width,
-        "height": height,
-        "strength": request_json["strength"] or 0.75,
-        "seamless": request_json["seamless"] or False,
-        "embedding_path": "embeddings/" + request_json["embeddings"] + ".pt" or None,
-    }
+@app.route("/image", methods=["GET"])
+def image():
+    s = request.args.get("s")
+    modelName = request.args.get("modelName", default=DEFAULT_MODEL)
+    args = MultiDict(prompt=s, model=modelName)
 
-    generate_params = {
-        "prompt": request_json["prompt"] or "",
-        "seed": request_json["seed"] or random.randint(1, 99999),
-        "init_image": request_json["init_image"] or None,
-        "mask_image": request_json["mask_image"] or None
-    }
+    return get_png(args)
 
-    generation = Generate(**init_params)
-    result = generation.prompt2png(**generate_params)
-    """
+
+@app.route("/api", methods=["POST"])
+def api():
+    return get_png(request.args)
 
 
 if __name__ == "__main__":

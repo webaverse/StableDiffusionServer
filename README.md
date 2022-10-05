@@ -1,6 +1,10 @@
-<h3>Send POST request to <code>http://&lthostname&gt;/api</code>, receive png.</h3>
+<h1>Webaverse StableDiffusion</h1>
 
-<h3>Parameters:</h3>
+<h3>GET Request:</h3>
+<code>http://&lthostname&gt;/image?s=&lt;YOUR_PROMPT&gt;&modelName=&lt;YOUR_MODEL&gt;</code>
+
+<h3>Full API Parameters:</h3>
+<code>http://&lthostname&gt;/api</code>
 <ul>
   <li>
     model <code>stable-diffusion_1-4 or waifu-diffusion_1-2 - default: stable-diffusion_1-4</code>
