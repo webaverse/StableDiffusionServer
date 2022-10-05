@@ -3,7 +3,7 @@
 <h3>GET Request:</h3>
 <code>http://&lthostname&gt;/image?s=&lt;YOUR_PROMPT&gt;&modelName=&lt;YOUR_MODEL&gt;</code>
 
-<h3>POST Request (Full Parameters):</h3>
+<h3>POST Request (full SD parameters):</h3>
 <code>http://&lthostname&gt;/api</code>
 <ul>
   <li>
