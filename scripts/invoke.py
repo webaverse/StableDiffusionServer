@@ -499,7 +499,8 @@ def do_postprocess (gen, opt, callback):
     # print all of the options object for debugging, printing all of the keys in the dict
     print('>> Options:')
     for key in opt.__dict__:
-        print(f'>> {key}: {opt.__dict__[key]}')
+        print(f'>> {key}: {opt.__dict__
+        [key]}')
     print()
 
     prompt = opt.prompt
@@ -513,11 +514,13 @@ def do_postprocess (gen, opt, callback):
         name = ''
         file_path = prompt
     # print
-    print(f'>> Name: {name}')
-    print(f'>> File path: {file_path}')
+    print(f'>> Name: "{name}"')
+    print(f'>> File path 1: "{file_path}"')
 
     if os.path.dirname(file_path) == '': #basename given
         file_path = os.path.join(opt.outdir,file_path)
+
+    print(f'>> File path 2: "{file_path}"')
 
     tool=None
     if opt.facetool_strength > 0:
