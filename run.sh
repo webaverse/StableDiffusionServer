@@ -1,8 +1,1 @@
-# check for python3, if it doesnt exist, use python
-COMMAND="python3"
-if ! command -v $COMMAND &> /dev/null
-then
-    COMMAND="python"
-fi
-
-$COMMAND scripts/invoke.py --web
+sudo python scripts/invoke.py --web --port 80 --host=0.0.0.0

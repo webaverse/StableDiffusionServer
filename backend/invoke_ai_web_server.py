@@ -6,7 +6,7 @@ import mimetypes
 import traceback
 import math
 
-from flask import Flask, redirect, send_from_directory
+from flask import Flask, redirect, send_from_directory, request, send_file
 from flask_socketio import SocketIO
 from PIL import Image
 from uuid import uuid4
@@ -18,6 +18,11 @@ from ldm.invoke.conditioning import split_weighted_subprompts
 
 from backend.modules.parameters import parameters_to_command
 
+app = Flask(__name__)
+from ldm.generate import Generate
+from omegaconf import OmegaConf
+import random
+from multidict import MultiDict
 
 # Loading Arguments
 opt = Args()
@@ -69,6 +74,53 @@ class InvokeAIWebServer:
             **socketio_args
         )
 
+        DEFAULT_MODEL = "stable-diffusion-1.5"
+
+        def get_png(args):
+
+            #args = request.args
+
+            # Get models and configs
+            model = args.get("model", default=DEFAULT_MODEL)
+            models = OmegaConf.load("configs/models.yaml")
+            width = models[model].width
+            height = models[model].height
+            config = models[model].config
+            weights = models[model].weights
+
+            arg_dict = {
+                "prompt": args.get("prompt", default="an astronaut riding a horse"),
+                "iterations": args.get("iterations", default=1),
+                "steps": args.get("steps", default=50),
+                "seed": args.get("seed", default=random.randint(1, 99999)),
+                "cfg_scale": args.get("cfg_scale", default=7.5),
+                "width": width,
+                "height": height,
+                "seamless": args.get("seamless", default=False),
+                "init_img": args.get("init_img", default=None), # For img2img
+                "init_mask": args.get("init_mask", default=None), # For inpainting
+                "strength": args.get("strength", default=0.75)
+            }
+
+            generation = Generate(weights=weights, config=config)
+            output = generation.prompt2png(**arg_dict, outdir="outputs/web_out")
+
+            return send_file(output[0][0], mimetype="image/png")
+
+        @self.app.route("/image", methods=["GET"])
+        def image():
+            s = request.args.get("s")
+            model = request.args.get("model", default=DEFAULT_MODEL)
+            args = MultiDict(prompt=s, model=model)
+
+            return get_png(args)
+
+
+        @self.app.route("/api", methods=["POST"])
+        def api():
+            return get_png(request.args)
+
+
         # Keep Server Alive Route
         @self.app.route('/flaskwebgui-keep-server-alive')
         def keep_alive():
@@ -76,6 +128,8 @@ class InvokeAIWebServer:
 
         # Outputs Route
         self.app.config['OUTPUTS_FOLDER'] = os.path.abspath(args.outdir)
+
+
 
         @self.app.route('/outputs/<path:file_path>')
         def outputs(file_path):

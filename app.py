@@ -46,8 +46,8 @@ def index():
 @app.route("/image", methods=["GET"])
 def image():
     s = request.args.get("s")
-    modelName = request.args.get("modelName", default=DEFAULT_MODEL)
-    args = MultiDict(prompt=s, model=modelName)
+    model = request.args.get("model", default=DEFAULT_MODEL)
+    args = MultiDict(prompt=s, model=model)
 
     return get_png(args)
 
@@ -55,7 +55,3 @@ def image():
 @app.route("/api", methods=["POST"])
 def api():
     return get_png(request.args)
-
-
-if __name__ == "__main__":
-    app.run()
