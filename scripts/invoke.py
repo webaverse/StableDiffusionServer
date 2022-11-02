@@ -505,7 +505,7 @@ def do_postprocess (gen, opt, callback):
     prompt = opt.prompt
     # the prompt looks like `"picture of a lollercopter" tmp/curly.png`. we want to parse out the name and the path
     # use a regex
-    match = re.match(r'\"(.*)\" (.*)', prompt)
+    match = re.match(r'\'(.*)\' (.*)', prompt)
     if match:
         name = match.groups()[0]
         file_path = match.groups()[1]
