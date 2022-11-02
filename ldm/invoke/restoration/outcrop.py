@@ -32,6 +32,7 @@ class Outcrop(object):
 
         # print the strength
         print(f'>> strength: {opt.strength}')
+        print(f'>> init mask: {opt.init_mask}')
 
         result= self.generate.prompt2image(
             opt.prompt,
@@ -43,6 +44,7 @@ class Outcrop(object):
             width       = extended_image.width,
             height      = extended_image.height,
             init_img    = extended_image,
+            init_mask    = opt.init_mask,
             strength    = opt.strength,
             image_callback = wrapped_callback,
         )

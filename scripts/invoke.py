@@ -521,6 +521,8 @@ def do_postprocess (gen, opt, callback):
 
     print(f'>> File path 2: "{file_path}"')
 
+    print(f'>> Init mask 3: "{opt.init_mask}"')
+
     tool=None
     if opt.facetool_strength > 0:
         tool = opt.facetool
