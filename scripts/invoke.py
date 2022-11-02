@@ -510,16 +510,12 @@ def do_postprocess (gen, opt, callback):
         name = match.groups()[0]
         file_path = match.groups()[1]
     else:
-        name = 'tmp'
+        name = ''
         file_path = prompt
     # print
     print(f'>> Name: {name}')
     print(f'>> File path: {file_path}')
 
-
-    # print(opt)
-    # throw an error
-    raise ValueError('test error')
     if os.path.dirname(file_path) == '': #basename given
         file_path = os.path.join(opt.outdir,file_path)
 
@@ -537,6 +533,7 @@ def do_postprocess (gen, opt, callback):
     opt.save_original  = True # do not overwrite old image!
     opt.last_operation = f'postprocess:{tool}'
     try:
+        opt.prompt = name
         gen.apply_postprocessor(
             image_path      = file_path,
             tool            = tool,
