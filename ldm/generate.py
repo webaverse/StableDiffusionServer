@@ -515,7 +515,7 @@ class Generate:
 
         args   = metadata_from_png(image_path)
         seed   = args.seed
-        prompt = args.prompt
+        prompt = opt.prompt
         print(f'>> retrieved seed {seed} and prompt "{prompt}" from {image_path}')
 
         if not seed:
