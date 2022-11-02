@@ -277,15 +277,15 @@ def main_loop(gen, opt, infile):
                     )
 
                     # update rfc metadata
-                    # if operation == 'postprocess':
-                    #     tool = re.match('postprocess:(\w+)',opt.last_operation).groups()[0]
-                    #     add_postprocessing_to_metadata(
-                    #         opt,
-                    #         opt.prompt,
-                    #         filename,
-                    #         tool,
-                    #         formatted_dream_prompt,
-                    #     )                           
+                    if operation == 'postprocess':
+                        tool = re.match('postprocess:(\w+)',opt.last_operation).groups()[0]
+                        add_postprocessing_to_metadata(
+                            opt,
+                            opt.prompt,
+                            filename,
+                            tool,
+                            formatted_dream_prompt,
+                        )                           
                         
                     if (not postprocessed) or opt.save_original:
                         # only append to results if we didn't overwrite an earlier output
@@ -505,7 +505,7 @@ def do_postprocess (gen, opt, callback):
     prompt = opt.prompt
     # the prompt looks like "lollercopter tmp/curly.png". we want to parse out the name and the path
     # use a regex
-    match = re.match('(\w+)\s+(.+)',prompt)
+    match = re.match('"(\w+)"\s+(.+)',prompt)
     if match:
         name = match.groups()[0]
         file_path = match.groups()[1]
