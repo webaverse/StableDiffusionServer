@@ -495,7 +495,11 @@ def write_config_file(conf_path, gen, model_name, new_config, clobber=False):
     return True
 
 def do_postprocess (gen, opt, callback):
-    file_path = opt.prompt     # treat the prompt as the file pathname
+    # file_path = opt.prompt     # treat the prompt as the file pathname
+    # print all of the options object
+    print(opt)
+    # throw an error
+    raise ValueError('test error')
     if os.path.dirname(file_path) == '': #basename given
         file_path = os.path.join(opt.outdir,file_path)
 
