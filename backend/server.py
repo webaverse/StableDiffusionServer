@@ -89,7 +89,6 @@ def outputs(filename):
 def serve(path):
     return send_from_directory(app.static_folder, "index.html")
 
-
 logger = True if verbose else False
 engineio_logger = True if verbose else False
 

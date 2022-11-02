@@ -1,7 +1,7 @@
 <h1>Webaverse StableDiffusion</h1>
 
 <h3>GET Request:</h3>
-<code>http://&lthostname&gt;/image?s=&lt;YOUR_PROMPT&gt;&modelName=&lt;YOUR_MODEL&gt;</code>
+<code>http://&lthostname&gt;/image?s=&lt;YOUR_PROMPT&gt;&model=&lt;YOUR_MODEL&gt;</code>
 
 <h3>POST Request (full SD parameters):</h3>
 <code>http://&lthostname&gt;/api</code>
