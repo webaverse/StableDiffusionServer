@@ -55,7 +55,7 @@ embedding_path = opt.embedding_path
 additional_allowed_origins = (
     opt.cors if opt.cors else []
 )  # additional CORS allowed origins
-model = "stable-diffusion-1.4"
+model = "stable-diffusion-1.5"
 
 """
 END USER CONFIG

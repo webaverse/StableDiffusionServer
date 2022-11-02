@@ -107,4 +107,3 @@ lightning:
     benchmark: True
     max_steps: 4000000
 #    max_steps: 4000
-    

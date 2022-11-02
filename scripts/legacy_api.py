@@ -528,8 +528,8 @@ def create_argv_parser():
     )
     parser.add_argument(
         '--model',
-        default='stable-diffusion-1.4',
-        help='Indicates which diffusion model to load. (currently "stable-diffusion-1.4" (default) or "laion400m")',
+        default='stable-diffusion-1.5',
+        help='Indicates which diffusion model to load. (currently "stable-diffusion-1.5" (default) or "laion400m")',
     )
     parser.add_argument(
         '--config',

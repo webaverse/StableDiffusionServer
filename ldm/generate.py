@@ -78,7 +78,7 @@ Example Usage:
 from ldm.generate import Generate
 
 # Create an object with default values
-gr = Generate('stable-diffusion-1.4')
+gr = Generate('stable-diffusion-1.5')
 
 # do the slow model initialization
 gr.load_model()
@@ -145,7 +145,7 @@ class Generate:
 
     def __init__(
             self,
-            model                 = 'stable-diffusion-1.4',
+            model                 = 'stable-diffusion-1.5',
             conf                  = 'configs/models.yaml',
             embedding_path        = None,
             sampler_name          = 'k_lms',

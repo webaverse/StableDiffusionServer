@@ -83,7 +83,7 @@ overridden on a per-prompt basis (see [List of prompt arguments](#list-of-prompt
 | `--outdir <path>`                         | `-o<path>`                                | `outputs/img_samples`                          | Location for generated images.                                                                       |
 | `--prompt_as_dir`                         | `-p`                                      | `False`                                        | Name output directories using the prompt text.                                                       |
 | `--from_file <path>`                      |                                           | `None`                                         | Read list of prompts from a file. Use `-` to read from standard input                                |
-| `--model <modelname>`                     |                                           | `stable-diffusion-1.4`                         | Loads model specified in configs/models.yaml. Currently one of "stable-diffusion-1.4" or "laion400m" |
+| `--model <modelname>`                     |                                           | `stable-diffusion-1.5`                         | Loads model specified in configs/models.yaml. Currently one of "stable-diffusion-1.5" or "laion400m" |
 | `--full_precision`                        | `-F`                                      | `False`                                        | Run in slower full-precision mode. Needed for Macintosh M1/M2 hardware and some older video cards.   |
 | `--png_compression <0-9>`                 | `-z<0-9>`                                 |  6                                             | Select level of compression for output files, from 0 (no compression) to 9 (max compression)         |
 | `--web`                                   |                                           | `False`                                        | Start in web server mode                                                                             |
@@ -107,7 +107,7 @@ overridden on a per-prompt basis (see [List of prompt arguments](#list-of-prompt
 
     | Argument           |  Shortcut  |  Default            |  Description |
     |--------------------|------------|---------------------|--------------|
-    | `--weights <path>`   |            | `None`                | Pth to weights file; use `--model stable-diffusion-1.4` instead |
+    | `--weights <path>`   |            | `None`                | Pth to weights file; use `--model stable-diffusion-1.5` instead |
     | `--laion400m`        | `-l`         | `False`               | Use older LAION400m weights; use `--model=laion400m` instead |
 
     </div>
@@ -269,7 +269,7 @@ The active model is bold-faced
 Example:
 <pre>
 laion400m                 not loaded  <no description>
-<b>stable-diffusion-1.4          active  Stable Diffusion v1.4</b>
+<b>stable-diffusion-1.5          active  Stable Diffusion v1.4</b>
 waifu-diffusion           not loaded  Waifu Diffusion v1.3
 </pre>
 
@@ -286,11 +286,11 @@ a cached model.
 <pre>
 invoke> !models
 laion400m                 not loaded  <no description>
-<b>stable-diffusion-1.4          cached  Stable Diffusion v1.4</b>
+<b>stable-diffusion-1.5          cached  Stable Diffusion v1.4</b>
 waifu-diffusion               active  Waifu Diffusion v1.3
 
 invoke> !switch waifu-diffusion
->> Caching model stable-diffusion-1.4 in system RAM
+>> Caching model stable-diffusion-1.5 in system RAM
 >> Loading waifu-diffusion from models/ldm/stable-diffusion-v1/model-epoch08-float16.ckpt
    | LatentDiffusion: Running in eps-prediction mode
    | DiffusionWrapper has 859.52 M params.
@@ -305,17 +305,17 @@ invoke> !switch waifu-diffusion
 
 invoke> !models
 laion400m                 not loaded  <no description>
-stable-diffusion-1.4          cached  Stable Diffusion v1.4
+stable-diffusion-1.5          cached  Stable Diffusion v1.4
 <b>waifu-diffusion               active  Waifu Diffusion v1.3</b>
 
-invoke> !switch stable-diffusion-1.4
+invoke> !switch stable-diffusion-1.5
 >> Caching model waifu-diffusion in system RAM
->> Retrieving model stable-diffusion-1.4 from system RAM cache
+>> Retrieving model stable-diffusion-1.5 from system RAM cache
 >> Setting Sampler to k_lms
 
 invoke> !models
 laion400m                 not loaded  <no description>
-<b>stable-diffusion-1.4          active  Stable Diffusion v1.4</b>
+<b>stable-diffusion-1.5          active  Stable Diffusion v1.4</b>
 waifu-diffusion               cached  Waifu Diffusion v1.3
 </pre>
 
@@ -360,7 +360,7 @@ waifu-diffusion:
   weights: models/ldm/stable-diffusion-v1/model-epoch08-float16.ckpt
   width: 512
 OK to import [n]? <b>y</b>
->> Caching model stable-diffusion-1.4 in system RAM
+>> Caching model stable-diffusion-1.5 in system RAM
 >> Loading waifu-diffusion from models/ldm/stable-diffusion-v1/model-epoch08-float16.ckpt
    | LatentDiffusion: Running in eps-prediction mode
    | DiffusionWrapper has 859.52 M params.
@@ -397,7 +397,7 @@ waifu-diffusion:
   width: 512
 
 OK to import [n]? y
->> Caching model stable-diffusion-1.4 in system RAM
+>> Caching model stable-diffusion-1.5 in system RAM
 >> Loading waifu-diffusion from models/ldm/stable-diffusion-v1/model-epoch10-float16.ckpt
 ...
 </pre>
