@@ -33,6 +33,7 @@ class Outcrop(object):
         # print the strength
         print(f'>> strength: {opt.strength}')
         print(f'>> init mask: {opt.init_mask}')
+        print(f'>> inpaint replace: {opt.inpaint_replace}')
 
         result= self.generate.prompt2image(
             opt.prompt,
@@ -47,6 +48,7 @@ class Outcrop(object):
             init_mask    = opt.init_mask,
             strength    = opt.strength,
             image_callback = wrapped_callback,
+            inpaint_replace = opt.inpaint_replace,
         )
         
         # swap sampler back
