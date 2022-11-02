@@ -6,7 +6,7 @@ import mimetypes
 import traceback
 import math
 
-from flask import Flask, redirect, send_from_directory, request, send_file
+from flask import Flask, Response, redirect, send_from_directory, request, send_file
 from flask_socketio import SocketIO
 from PIL import Image
 from uuid import uuid4
@@ -66,7 +66,7 @@ class InvokeAIWebServer:
             socketio_args['cors_allowed_origins'] = opt.cors
 
         self.app = Flask(
-            __name__, static_url_path='', static_folder='../frontend/dist/'
+            __name__, static_url_path='', static_folder='./frontend/dist/'
         )
 
         self.socketio = SocketIO(
@@ -103,9 +103,11 @@ class InvokeAIWebServer:
             }
 
             generation = Generate(weights=weights, config=config)
-            output = generation.prompt2png(**arg_dict, outdir="outputs/web_out")
+            output = self.generate.prompt2png(**arg_dict, outdir="../../outputs/web_out")
 
             return send_file(output[0][0], mimetype="image/png")
+
+            return Response(output[0][0], mimetype="image/png")
 
         @self.app.route("/image", methods=["GET"])
         def image():

@@ -611,7 +611,7 @@ def get_next_command(infile=None) -> str:  # command string
 
 def invoke_ai_web_server_loop(gen, gfpgan, codeformer, esrgan):
     print('\n* --web was specified, starting web server...')
-    from backend.invoke_ai_web_server import InvokeAIWebServer
+    from invoke_ai_web_server import InvokeAIWebServer
     # Change working directory to the stable-diffusion directory
     os.chdir(
         os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
