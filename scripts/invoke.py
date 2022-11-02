@@ -499,8 +499,7 @@ def do_postprocess (gen, opt, callback):
     # print all of the options object for debugging, printing all of the keys in the dict
     print('>> Options:')
     for key in opt.__dict__:
-        print(f'>> {key}: {opt.__dict__
-        [key]}')
+        print(f'>> {key}: {opt.__dict__[key]}')
     print()
 
     prompt = opt.prompt
