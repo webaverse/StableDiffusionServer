@@ -30,6 +30,9 @@ class Outcrop(object):
         def wrapped_callback(img,seed,**kwargs):
             image_callback(img,orig_opt.seed,use_prefix=prefix,**kwargs)
 
+        # print the strength
+        print(f'>> strength: {opt.strength}')
+
         result= self.generate.prompt2image(
             opt.prompt,
 #            seed        = orig_opt.seed,    # uncomment to make it deterministic
