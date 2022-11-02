@@ -277,15 +277,15 @@ def main_loop(gen, opt, infile):
                     )
 
                     # update rfc metadata
-                    if operation == 'postprocess':
-                        tool = re.match('postprocess:(\w+)',opt.last_operation).groups()[0]
-                        add_postprocessing_to_metadata(
-                            opt,
-                            opt.prompt,
-                            filename,
-                            tool,
-                            formatted_dream_prompt,
-                        )                           
+                    # if operation == 'postprocess':
+                    #     tool = re.match('postprocess:(\w+)',opt.last_operation).groups()[0]
+                    #     add_postprocessing_to_metadata(
+                    #         opt,
+                    #         opt.prompt,
+                    #         filename,
+                    #         tool,
+                    #         formatted_dream_prompt,
+                    #     )                           
                         
                     if (not postprocessed) or opt.save_original:
                         # only append to results if we didn't overwrite an earlier output
