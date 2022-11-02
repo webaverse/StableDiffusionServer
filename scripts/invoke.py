@@ -501,7 +501,22 @@ def do_postprocess (gen, opt, callback):
     for key in opt.__dict__:
         print(f'>> {key}: {opt.__dict__[key]}')
     print()
-    
+
+    prompt = opt.prompt
+    # the prompt looks like "lollercopter tmp/curly.png". we want to parse out the name and the path
+    # use a regex
+    match = re.match('(\w+)\s+(.+)',prompt)
+    if match:
+        name = match.groups()[0]
+        file_path = match.groups()[1]
+    else:
+        name = 'tmp'
+        file_path = prompt
+    # print
+    print(f'>> Name: {name}')
+    print(f'>> File path: {file_path}')
+
+
     # print(opt)
     # throw an error
     raise ValueError('test error')
