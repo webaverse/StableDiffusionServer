@@ -31,7 +31,7 @@ class Outcrop(object):
             image_callback(img,orig_opt.seed,use_prefix=prefix,**kwargs)
 
         result= self.generate.prompt2image(
-            orig_opt.prompt,
+            opt.prompt,
 #            seed        = orig_opt.seed,    # uncomment to make it deterministic
             sampler     = self.generate.sampler,
             steps       = opt.steps,
