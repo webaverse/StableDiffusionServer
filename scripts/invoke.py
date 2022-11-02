@@ -496,8 +496,12 @@ def write_config_file(conf_path, gen, model_name, new_config, clobber=False):
 
 def do_postprocess (gen, opt, callback):
     # file_path = opt.prompt     # treat the prompt as the file pathname
-    # print all of the options object for debugging, using the cyrly syntax
-    print(f'>> options: {opt}')
+    # print all of the options object for debugging, printing all of the keys in the dict
+    print('>> Options:')
+    for key in opt.__dict__:
+        print(f'>> {key}: {opt.__dict__[key]}')
+    print()
+    
     # print(opt)
     # throw an error
     raise ValueError('test error')
