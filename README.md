@@ -7,7 +7,7 @@
 <code>http://&lthostname&gt;/api</code>
 <ul>
   <li>
-    model <code>stable-diffusion-1.4 or stable-diffusion-1.2 - default: stable-diffusion-1.4</code>
+    model <code>stable-diffusion-1.5</code>
   </li>
   <li>
     prompt <code>default: "an astronaut riding a horse"</code>
