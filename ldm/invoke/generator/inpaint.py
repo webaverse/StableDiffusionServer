@@ -60,10 +60,12 @@ class Inpaint(Img2Img):
 
             # to replace masked area with latent noise, weighted by inpaint_replace strength
             if inpaint_replace > 0.0:
-                print(f'>> inpaint will replace what was under the mask with a strength of {inpaint_replace}')
+                print(f'>> inpaint will replace what was under the mask with a strength of {inpaint_replace} {type(inpaint_replace)}')
+                # parse string to float
+                inpaint_replace_f = float(inpaint_replace)
                 l_noise = self.get_noise(kwargs['width'],kwargs['height'])
                 inverted_mask = 1.0-mask_image  # there will be 1s where the mask is
-                masked_region = (1.0-inpaint_replace) * inverted_mask * z_enc + inpaint_replace * inverted_mask * l_noise
+                masked_region = (1.0-inpaint_replace_f) * inverted_mask * z_enc + inpaint_replace_f * inverted_mask * l_noise
                 z_enc   = z_enc * mask_image + masked_region
 
             # decode it
