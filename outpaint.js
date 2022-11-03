@@ -56,14 +56,14 @@ huggingFaceKey = `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`;
     return result;
   }
   async function genImg(prompt) {
-    const fd = getFormData(prompt);
+    const fd = getFormData(prompt, tileSize, tileSize);
     const res = await fetch(`http://stable-diffusion-server.webaverse.com/api`, {method: 'POST', body: fd});
     const b = await res.blob();
     const i = await blob2img(b);
     return i;
   }
   async function editImg(srcCanvas, prompt, maskCanvas) {
-    const fd = getFormData(prompt);
+    const fd = getFormData(prompt, tileSize, tileSize);
     
     // opt.prompt,
     // // seed        = orig_opt.seed,    # uncomment to make it deterministic
