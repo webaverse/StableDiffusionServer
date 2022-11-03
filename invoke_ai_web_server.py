@@ -120,7 +120,11 @@ class InvokeAIWebServer:
 
         @self.app.route("/api", methods=["POST"])
         def api():
-            return get_png(request.args)
+            args = request.form
+            # print out the form keys
+            print(args.keys())
+
+            return get_png(args)
 
 
         # Keep Server Alive Route
