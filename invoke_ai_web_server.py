@@ -117,6 +117,10 @@ class InvokeAIWebServer:
             s = request.args.get("s")
             model = request.args.get("model", default=DEFAULT_MODEL)
             args = MultiDict(prompt=s, model=model)
+            # copy files to args
+            # especially for init_img and init_mask
+            for key in request.files:
+                args.add(key, request.files[key])
 
             return get_png(args)
 
