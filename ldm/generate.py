@@ -516,7 +516,7 @@ class Generate:
         args   = metadata_from_png(image_path)
         seed   = args.seed
         prompt = opt.prompt
-        print(f'>> retrieved seed {seed} and prompt "{prompt}" from {image_path}')
+        print(f'>> retrieved seed {seed} and prompt "{prompt}" from {image_path}: {args.prompt}')
 
         if not seed:
             print('* Could not recover seed for image. Replacing with 42. This will not affect image quality')
@@ -639,6 +639,7 @@ class Generate:
         if self._has_transparency(image):
             self._transparency_check_and_warning(image, mask)
             # this returns a torch tensor
+            print(">> Generating mask from transparent area")
             init_mask = self._create_init_mask(image, width, height, fit=fit)
             
         if (image.width * image.height) > (self.width * self.height) and self.size_matters:
