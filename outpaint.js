@@ -7,17 +7,6 @@ huggingFaceKey = `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`;
   const tileSize = 512;
   const prompt = `2D overhead view, full color fantasy height map, mysterious sakura forest, trending on artstation, pinterest, studio ghibli`;
 
-  /* async function blobToDataURL(blob) {
-    var a = new FileReader();
-    const promise = new Promise((accept, reject) => {
-      a.onload = function(e) {
-        accept(e.target.result);
-      };
-      a.onerror = reject;
-    });
-    a.readAsDataURL(blob);
-    return await promise;
-  } */
   function blob2img(blob) {
     const img = new Image();
     const u = URL.createObjectURL(blob);
