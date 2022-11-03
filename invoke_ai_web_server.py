@@ -124,8 +124,8 @@ class InvokeAIWebServer:
         @self.app.route("/api", methods=["POST"])
         def api():
             args = request.form
-            # print out the form keys
-            # print(args.keys())
+            # print out all of the form entries
+            print("form keys: ", args.keys())
 
             return get_png(args)
 
