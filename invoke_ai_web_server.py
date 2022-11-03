@@ -99,7 +99,8 @@ class InvokeAIWebServer:
                 "seamless": args.get("seamless", default=False),
                 "init_img": args.get("init_img", default=None), # For img2img
                 "init_mask": args.get("init_mask", default=None), # For inpainting
-                "strength": args.get("strength", default=0.75)
+                "strength": args.get("strength", default=0.75),
+                "inpaint_replace": args.get("inpaint_replace", default=0.0),
             }
             # print the computed prompt
             print("prompt: ", arg_dict["prompt"])
@@ -124,7 +125,7 @@ class InvokeAIWebServer:
         def api():
             args = request.form
             # print out the form keys
-            print(args.keys())
+            # print(args.keys())
 
             return get_png(args)
 
