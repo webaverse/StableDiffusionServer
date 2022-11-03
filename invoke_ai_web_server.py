@@ -101,6 +101,8 @@ class InvokeAIWebServer:
                 "init_mask": args.get("init_mask", default=None), # For inpainting
                 "strength": args.get("strength", default=0.75)
             }
+            # print the computed prompt
+            print("prompt: ", arg_dict["prompt"])
 
             generation = Generate(weights=weights, config=config)
             output = self.generate.prompt2png(**arg_dict, outdir="../../outputs/web_out")
