@@ -1,4 +1,4 @@
-huggingFaceKey = `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`;
+huggingFaceKey = `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`;
 
 //
 
@@ -58,10 +58,18 @@ huggingFaceKey = `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`;
     return i;
   }
 
+  // canvases
   const canvas = document.createElement('canvas');
   canvas.width = canvasSize;
   canvas.height = canvasSize;
   const ctx = canvas.getContext('2d');
+  document.body.appendChild(canvas);
+
+  const depthCanvas = document.createElement('canvas');
+  depthCanvas.width = canvasSize;
+  depthCanvas.height = canvasSize;
+  const depthCtx = depthCanvas.getContext('2d');
+  document.body.appendChild(depthCanvas);
 
   const baseImg = await genImg(prompt, tileSize, tileSize);
   const baseImgPosition = [
@@ -70,13 +78,11 @@ huggingFaceKey = `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`;
   ];
   ctx.drawImage(baseImg, baseImgPosition[0], baseImgPosition[1]);
 
-  const result = await getDepth(baseImg.blob);
-  console.log('got depth', result, baseImg.blob);
-  const image = await blob2img(result);
-  ctx.drawImage(image, 0, 0);
+  const depthResult = await getDepth(baseImg.blob);
+  const image = await blob2img(depthResult);
+  depthCtx.drawImage(image, baseImgPosition[0], baseImgPosition[1]);
 
-  document.body.appendChild(canvas);
-  canvas.style.cssText = `\
+  const cssText = `\
     position: fixed;
     top: 0;
     left: 0;
@@ -84,6 +90,34 @@ huggingFaceKey = `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`;
     max-height: 100vh;
     object-fit: contain;
     z-index: 100;
+    visibility: hidden;
   `;
+  canvas.style.cssText = cssText;
+  depthCanvas.style.cssText = cssText;
+
+  canvas.style.visibility = 'visible';
+
+  let currentHeight = 0;
+  window.addEventListener('keydown', e => {
+    if (!e.repeat) {
+      if (e.code === 'PageDown') {
+        currentHeight--;
+      } else if (e.code === 'PageUp') {
+        currentHeight++;
+      }
+    }
+
+    const _updateVisibility = () => {
+      canvas.style.visibility = 'hidden';
+      depthCanvas.style.visibility = 'hidden';
+      if (currentHeight === 0) {
+        canvas.style.visibility = 'visible';
+      } else if (currentHeight === -1) {
+        depthCanvas.style.visibility = 'visible';
+      }
+    };
+    _updateVisibility();
+  });
+
   return canvas;
 })().then(console.log, console.warn);
