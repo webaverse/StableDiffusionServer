@@ -1,5 +1,5 @@
 huggingFaceKey = `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`;
-prompt = `2D overhead view, full color fantasy height map, mysterious sakura lunar magic forest, trending on artstation, pinterest, studio ghibli`;
+prompt = `2D overhead view, full color fantasy height map, magical anime lush forest river, trending on artstation, pinterest`;
 
 //
 
@@ -1107,8 +1107,152 @@ function getLineForViewport(viewport) {
 
 //
 
+convertToUint16 = (() => {
+  const tmpArray = new Uint16Array(1);
+  return v => {
+    tmpArray[0] = v;
+    return tmpArray[0];
+  };
+})();
 
+//
 
+calcSDF = (() => {
+  var INF = 1e20
+
+  function calcSDF(src, options) {
+      if (!options) options = {}
+
+      var cutoff = options.cutoff == null ? 0.25 : options.cutoff
+      var radius = options.radius == null ? 8 : options.radius
+      var channel = options.channel || 0
+      var w, h, size, data, intData, stride, ctx, canvas, imgData, i, l
+
+      // handle image container
+      if (ArrayBuffer.isView(src) || Array.isArray(src)) {
+          if (!options.width || !options.height) throw Error('For raw data width and height should be provided by options')
+          w = options.width, h = options.height
+          data = src
+
+          if (!options.stride) stride = Math.floor(src.length / w / h)
+          else stride = options.stride
+      }
+      else {
+          if (window.HTMLCanvasElement && src instanceof window.HTMLCanvasElement) {
+              canvas = src
+              ctx = canvas.getContext('2d')
+              w = canvas.width, h = canvas.height
+              imgData = ctx.getImageData(0, 0, w, h)
+              data = imgData.data
+              stride = 4
+          }
+          else if (window.CanvasRenderingContext2D && src instanceof window.CanvasRenderingContext2D) {
+              canvas = src.canvas
+              ctx = src
+              w = canvas.width, h = canvas.height
+              imgData = ctx.getImageData(0, 0, w, h)
+              data = imgData.data
+              stride = 4
+          }
+          else if (window.ImageData && src instanceof window.ImageData) {
+              imgData = src
+              w = src.width, h = src.height
+              data = imgData.data
+              stride = 4
+          }
+      }
+
+      size = Math.max(w, h)
+
+      //convert int data to floats
+      if ((window.Uint8ClampedArray && data instanceof window.Uint8ClampedArray) || (window.Uint8Array && data instanceof window.Uint8Array)) {
+          intData = data
+          data = Array(w*h)
+
+          for (i = 0, l = Math.floor(intData.length / stride); i < l; i++) {
+              data[i] = intData[i*stride + channel] / 255
+          }
+      }
+      else {
+          if (stride !== 1) throw Error('Raw data can have only 1 value per pixel')
+      }
+
+      // temporary arrays for the distance transform
+      var gridOuter = Array(w * h)
+      var gridInner = Array(w * h)
+      var f = Array(size)
+      var d = Array(size)
+      var z = Array(size + 1)
+      var v = Array(size)
+
+      for (i = 0, l = w * h; i < l; i++) {
+          var a = data[i]
+          gridOuter[i] = a === 1 ? 0 : a === 0 ? INF : Math.pow(Math.max(0, 0.5 - a), 2)
+          gridInner[i] = a === 1 ? INF : a === 0 ? 0 : Math.pow(Math.max(0, a - 0.5), 2)
+      }
+
+      edt(gridOuter, w, h, f, d, v, z)
+      edt(gridInner, w, h, f, d, v, z)
+
+      var dist = window.Float32Array ? new Float32Array(w * h) : new Array(w * h)
+
+      for (i = 0, l = w*h; i < l; i++) {
+          dist[i] = Math.min(Math.max(1 - ( (gridOuter[i] - gridInner[i]) / radius + cutoff), 0), 1)
+      }
+
+      return dist
+  }
+
+  // 2D Euclidean distance transform by Felzenszwalb & Huttenlocher https://cs.brown.edu/~pff/dt/
+  function edt(data, width, height, f, d, v, z) {
+      for (var x = 0; x < width; x++) {
+          for (var y = 0; y < height; y++) {
+              f[y] = data[y * width + x]
+          }
+          edt1d(f, d, v, z, height)
+          for (y = 0; y < height; y++) {
+              data[y * width + x] = d[y]
+          }
+      }
+      for (y = 0; y < height; y++) {
+          for (x = 0; x < width; x++) {
+              f[x] = data[y * width + x]
+          }
+          edt1d(f, d, v, z, width)
+          for (x = 0; x < width; x++) {
+              data[y * width + x] = Math.sqrt(d[x])
+          }
+      }
+  }
+
+  // 1D squared distance transform
+  function edt1d(f, d, v, z, n) {
+      v[0] = 0;
+      z[0] = -INF
+      z[1] = +INF
+
+      for (var q = 1, k = 0; q < n; q++) {
+          var s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k])
+          while (s <= z[k]) {
+              k--
+              s = ((f[q] + q * q) - (f[v[k]] + v[k] * v[k])) / (2 * q - 2 * v[k])
+          }
+          k++
+          v[k] = q
+          z[k] = s
+          z[k + 1] = +INF
+      }
+
+      for (q = 0, k = 0; q < n; q++) {
+          while (z[k + 1] < q) k++
+          d[q] = (q - v[k]) * (q - v[k]) + f[v[k]]
+      }
+  }
+  
+  return calcSDF;
+})();
+
+//
 
 
 
@@ -1237,16 +1381,6 @@ function canvas2blob(canvas) {
     };
   };
   const fillMaskCanvasFromViewports = (maskCanvas, maskCtx, tiles, mainViewport) => {
-    const blurRadius = 100;
-    const blurCanvas = document.createElement('canvas');
-    blurCanvas.width = maskCanvas.width + blurRadius * 2;
-    blurCanvas.height = maskCanvas.height + blurRadius * 2;
-    const blurCtx = blurCanvas.getContext('2d');
-
-    // center of the main viewport
-    const cx = (mainViewport[0] + mainViewport[2]) / 2;
-    const cy = (mainViewport[1] + mainViewport[3]) / 2;
-
     // draw rects where the viewports are, offset by the main viewport
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
@@ -1258,67 +1392,75 @@ function canvas2blob(canvas) {
         viewport[2] - mainViewport[0],
         viewport[3] - mainViewport[1],
       ];
-      
-      // if (i !== 0) {
-        const tcx = (viewport[0] + viewport[2]) / 2;
-        const tcy = (viewport[1] + viewport[3]) / 2;
-        if (tcx < cx) {
-          localViewport[0] -= blurRadius;
-          localViewport[2] -= blurRadius;
-          console.log('push 1', i);
-        } else if (tcx > cx) {
-          localViewport[0] += blurRadius;
-          localViewport[2] += blurRadius;
-          console.log('push 2', i);
-        }
-        if (tcy < cy) {
-          localViewport[1] -= blurRadius;
-          localViewport[3] -= blurRadius;
-          console.log('push 3', i);
-        } else if (tcy > cy) {
-          localViewport[1] += blurRadius;
-          localViewport[3] += blurRadius;
-          console.log('push 4', i);
-        }
-      // }
-
-      blurCtx.fillStyle = 'rgba(255, 0, 0, 1)';
-      blurCtx.fillRect(
-        blurRadius + localViewport[0],
-        blurRadius + localViewport[1],
+      maskCtx.fillStyle = 'rgba(255, 0, 0, 1)';
+      maskCtx.fillRect(
+        localViewport[0],
+        localViewport[1],
         localViewport[2] - localViewport[0],
         localViewport[3] - localViewport[1]
       );
-    }
-    // perform a blur
-    StackBlur.canvasRGBA(blurCanvas, 0, 0, blurCanvas.width, blurCanvas.height, blurRadius);
-    // apply power function using imageData
-    {
-      const imageData = blurCtx.getImageData(0, 0, blurCanvas.width, blurCanvas.height);
-      const data = imageData.data;
-      for (let i = 0; i < data.length; i += 4) {
-        const r = data[i + 0];
-        // const g = data[i + 1];
-        // const b = data[i + 2];
-        // const a = data[i + 3];
-        const v = ((r / 255) ** 0.5) * 255;
-        data[i + 0] = v;
-        data[i + 1] = v;
-        data[i + 2] = v;
-        data[i + 3] = v;
+
+      /* // make a new mask canvas of the same size
+      const maskCanvas2 = document.createElement('canvas');
+      maskCanvas2.width = maskCanvas.width;
+      maskCanvas2.height = maskCanvas.height;
+      const maskCtx2 = maskCanvas2.getContext('2d');
+
+      // run the mask shader over the image data
+      const srcImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const dstImageData = maskCtx2.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const getXyKey = (x, y) => (convertToUint16(x) << 16) | convertToUint16(y);
+
+      // Consume 
+
+      const getNoise = (x, y) => {
+        const distanceToEmpty = getDistanceToEmpty(x, y);
+        const distanceToSide = getDistanceToSide(x, y);
+        const totalDistance = distanceToEmpty + distanceToSide;
+        let v = distanceToEmpty / totalDistance;
+        v *= 255;
+
+        const i = (y * srcImageData.width + x) * 4;
+        dstImageData.data[i + 0] = v;
+        dstImageData.data[i + 1] = v;
+        dstImageData.data[i + 2] = v;
+        dstImageData.data[i + 3] = v;
+      }
+      for (let y = 0; y < srcImageData.height; y++) {
+        for (let x = 0; x < srcImageData.width; x++) {
+          getNoise(x, y);
+        }
+      }
+      maskCtx2.putImageData(dstImageData, 0, 0); */
+
+      // compute the sdf as a Float32Array
+      console.log('sdf 1', maskCanvas);
+      const sdf = calcSDF(maskCanvas, {
+        cutoff: 1,
+        radius: 256,
+      });
+      console.log('sdf 2', sdf);
+
+      // render the sdf to a temp canvas
+      const tmpCanvas = document.createElement('canvas');
+      tmpCanvas.classList.add('tmpCanvas');
+      tmpCanvas.width = maskCanvas.width;
+      tmpCanvas.height = maskCanvas.height;
+      const tmpCtx = tmpCanvas.getContext('2d');
+      document.body.appendChild(tmpCanvas);
+      {
+        const tmpImageData = tmpCtx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height);
+        const tmpData = tmpImageData.data;
+        for (let i = 0; i < tmpData.length; i += 4) {
+          const v = sdf[i / 4] * 255;
+          tmpData[i + 0] = v;
+          tmpData[i + 1] = v;
+          tmpData[i + 2] = v;
+          tmpData[i + 3] = v;
+        }
+        tmpCtx.putImageData(tmpImageData, 0, 0);
       }
     }
-    
-    // blurCtx.filter = `blur(${blurRadius}px)`;
-    // blurCtx.drawImage(blurCanvas, 0, 0);
-    // copy over the blurred canvas back to the mask canvas, taking into account the blur radius offset
-    maskCtx.drawImage(
-      blurCanvas,
-      blurRadius, blurRadius,
-      maskCanvas.width, maskCanvas.height,
-      0, 0,
-      maskCanvas.width, maskCanvas.height
-    );
   };
   async function getDepth(blob) {
     const res = await fetch('https://depth.webaverse.com/depth', {
