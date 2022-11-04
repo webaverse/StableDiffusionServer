@@ -1390,7 +1390,6 @@ function canvas2blob(canvas) {
           ];
         };
         function pDistance(x, y, x1, y1, x2, y2) {
-
           var A = x - x1;
           var B = y - y1;
           var C = x2 - x1;
