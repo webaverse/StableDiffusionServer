@@ -1424,6 +1424,8 @@ function canvas2blob(canvas) {
           return pDistance(p[0], p[1], line[0][0], line[0][1], line[1][0], line[1][1]);
         };
 
+        // XXX if the center is on the same axist as the currently rendered viewport, we can do a linear gradient
+        // XXX otherwise, we must do a radial one
         const line = _getLineForViewport(localViewport);
         for (let dx = 0; dx < w2; dx++) {
           for (let dy = 0; dy < h2; dy++) {
