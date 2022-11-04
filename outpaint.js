@@ -1055,6 +1055,69 @@ createFullSeedImage = () => {
 
 //
 
+distanceToPolygon = (() => {
+  const distanceBetweenPoints = ([p1x, p1y], [p2x, p2y], f = (x) => x) => f(Math.sqrt(
+    Math.pow(p1x - p2x, 2) + Math.pow(p1y - p2y, 2)
+  ));
+  const distanceToLine = ([px, py], [[l1x, l1y], [l2x, l2y]], f = (x) => x) => {
+    const xD = l2x - l1x;
+    const yD = l2y - l1y;
+
+    const u = (((px - l1x) * xD) + ((py - l1y) * yD)) / ((xD * xD) + (yD * yD));
+
+    let closestLine;
+    if (u < 0) {
+      closestLine = [l1x, l1y];
+    } else if (u > 1) {
+      closestLine = [l2x, l2y];
+    } else {
+      closestLine = [l1x + (u * xD), l1y + (u * yD)];
+    }
+
+    return f(distanceBetweenPoints([px, py], closestLine));
+  };
+  const distanceToPolygon = ([px, py], vertices, f = (x) => x) => {
+    const comp = vertices.reduce(({ prevPoint, dist }, currPoint) => {
+      const currDist = distanceToLine([px, py], [prevPoint, currPoint]);
+      const ret = {
+        prevPoint: currPoint,
+        dist,
+      };
+      if (currDist < dist) {
+        ret.dist = currDist;
+      }
+      return ret;
+    }, { prevPoint: vertices[vertices.length - 1], dist: Infinity });
+    return f(comp.dist);
+  };
+  return distanceToPolygon;
+})();
+
+//
+
+// signed distance to rectangle
+// positive means outside of the rectangle
+/* float sdAxisAlignedRect(vec2 uv, vec2 tl, vec2 br) {
+    vec2 d = max(tl-uv, uv-br);
+    return length(max(vec2(0.0), d)) + min(0.0, max(d.x, d.y));
+} */
+length = v => Math.sqrt(v[0] * v[0] + v[1] * v[1]);
+signedDistanceToRectangle = (uv, rect) => {
+  const tl = [rect[0], rect[1]];
+  const br = [rect[2], rect[3]];
+  const d = [Math.max(tl[0] - uv[0], uv[0] - br[0]), Math.max(tl[1] - uv[1], uv[1] - br[1])];
+  return length([Math.max(0, d[0]), Math.max(0, d[1])]) + Math.min(0, Math.max(d[0], d[1]));
+};
+// test cases
+// console.log(signedDistanceToRectangle([0, 0], [-1, -1, 1, 1]));
+
+//
+
+
+
+
+
+
 
 
 
@@ -1220,6 +1283,13 @@ function canvas2blob(canvas) {
       canvasSize / 2 + tileSize,
       canvasSize / 2 + tileSize,
     ];
+    // clockwise from top left
+    const polygon = [
+      [viewport[0], viewport[1]],
+      [viewport[2], viewport[1]],
+      [viewport[2], viewport[3]],
+      [viewport[0], viewport[3]],
+    ];
     ctx.drawImage(baseImg, viewport[0], viewport[1]);
 
     const depthResult = await getDepth(baseImg.blob);
@@ -1229,12 +1299,13 @@ function canvas2blob(canvas) {
     const tile = {
       img: baseImg,
       viewport,
+      polygon,
     };
     tiles.push(tile);
   };
   await _initialTile();
 
-  const _drawTile = async (tiles, viewport, {
+  const _drawTile = async (tiles, viewport, polygon, {
     debug = false,
   } = {}) => {
     const x = viewport[0];
@@ -1262,7 +1333,10 @@ function canvas2blob(canvas) {
 
     const _drawMask = (srcCanvas, srcCtx, maskCanvas, maskCtx, tiles) => {
       for (const tile of tiles) {
-        const {img, viewport} = tile;
+        // if (tile === tiles[0]) {
+        //   continue;
+        // }
+        const {img, viewport, polygon} = tile;
         
         // compute position within the viewport
         const x1 = viewport[0] - x;
@@ -1271,6 +1345,15 @@ function canvas2blob(canvas) {
         const y2 = viewport[3] - y;
         const w2 = x2 - x1;
         const h2 = y2 - y1;
+        const localViewport = [
+          x1,
+          y1,
+          x2,
+          y2,
+        ];
+        // if (img.width !== w2 || img.height !== h2) {
+        //   debugger;
+        // }
 
         // console.log('tile position', tile.viewport.join(','), [x, y, w, h], [x1, y1, x2, y2, w2, h2]);
 
@@ -1281,21 +1364,86 @@ function canvas2blob(canvas) {
         // note that x1 and y1 might be negative, so we need to offset the values a bit
         const imageData = maskCtx.getImageData(x1, y1, w2, h2);
         // console.log('got image data', imageData);
+        // if (imageData.width !== w2 || imageData.height !== h2) {
+        //   debugger;
+        // }
 
         // fill the image data based on the distance to the center
         // XXX make it based on the center to the target
-        const cx = w2 / 2;
-        const cy = h2 / 2;
-        for (let x = 0; x < w2; x++) {
-          for (let y = 0; y < h2; y++) {
-            const d = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
-            const maxD = w2 / 2;
-            const r = (1 - ((d / maxD) ** 3)) * 255;
+        // const cx = w2 / 2;
+        // const cy = h2 / 2;
+        // console.log('distance', signedDistanceToRectangle([x1 + w2 / 2, y1 + h2 / 2], tile.viewport));
+
+        const _getLineForViewport = viewport => {
+          const w = viewport[2] - viewport[0];
+          const h = viewport[3] - viewport[1];
+          const r = Math.min(w, h) / 2;
+          return [
+            [
+              viewport[0] + r,
+              viewport[1] + r,
+            ],
+            [
+              viewport[2] - r,
+              viewport[3] - r,
+            ],
+          ];
+        };
+        function pDistance(x, y, x1, y1, x2, y2) {
+
+          var A = x - x1;
+          var B = y - y1;
+          var C = x2 - x1;
+          var D = y2 - y1;
+        
+          var dot = A * C + B * D;
+          var len_sq = C * C + D * D;
+          var param = -1;
+          if (len_sq != 0) //in case of 0 length line
+              param = dot / len_sq;
+        
+          var xx, yy;
+        
+          if (param < 0) {
+            xx = x1;
+            yy = y1;
+          }
+          else if (param > 1) {
+            xx = x2;
+            yy = y2;
+          }
+          else {
+            xx = x1 + param * C;
+            yy = y1 + param * D;
+          }
+        
+          var dx = x - xx;
+          var dy = y - yy;
+          return Math.sqrt(dx * dx + dy * dy);
+        }
+        const _distanceToLine = (p, line) => {
+          return pDistance(p[0], p[1], line[0][0], line[0][1], line[1][0], line[1][1]);
+        };
+
+        const line = _getLineForViewport(localViewport);
+        // const distance = _distanceToLine([x1, y1], line);
+        // console.log('got distance', distance);
+        for (let dx = 0; dx < w2; dx++) {
+          for (let dy = 0; dy < h2; dy++) {
+            const ax = x1 + dx;
+            const ay = y1 + dy;
+            
+            // const distance = signedDistanceToRectangle([ax, ay], tile.viewport);
+            const distance = _distanceToLine([ax, ay], line);
+            // const d = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
+            const d = distance;
+            const maxD = Math.min(w2, h2) / 2;
+            const r = (1 - ((d / maxD) ** 2)) * 255;
             const g = r;
             const b = r;
             const a = r;
             
-            const i = (y * imageData.width + x) * 4;
+            const i = (dy * imageData.width + dx) * 4;
             imageData.data[i + 0] = Math.max(r, imageData.data[i + 0]);
             imageData.data[i + 1] = Math.max(g, imageData.data[i + 1]);
             imageData.data[i + 2] = Math.max(b, imageData.data[i + 2]);
@@ -1322,28 +1470,49 @@ function canvas2blob(canvas) {
     const tile = {
       img: baseImg,
       viewport,
+      polygon,
     };
     tiles.push(tile);
   };
   // draw tiles
-  await _drawTile(tiles, [
-    canvasSize / 2 + tileSize / 2,
-    canvasSize / 2 + tileSize / 2,
-    canvasSize / 2 + tileSize / 2 + tileSize,
-    canvasSize / 2 + tileSize / 2 + tileSize,
-  ], {
-    debug: false,
-  });
-  // console.log('drawing second 1');
-  await _drawTile(tiles, [
-    canvasSize / 2 + tileSize / 2,
-    canvasSize / 2 - tileSize / 2,
-    canvasSize / 2 + tileSize / 2 + tileSize,
-    canvasSize / 2 + tileSize,
-  ], {
-    debug: true,
-  });
-  // console.log('drawing second 2');
+  {  // bottom right
+    const viewport = [
+      canvasSize / 2 + tileSize / 2,
+      canvasSize / 2 + tileSize / 2,
+      canvasSize / 2 + tileSize / 2 + tileSize,
+      canvasSize / 2 + tileSize / 2 + tileSize,
+    ];
+    const polygon = [
+      [canvasSize / 2 + tileSize / 2, canvasSize / 2 + tileSize], // left top left
+      [canvasSize / 2 + tileSize, canvasSize / 2 + tileSize], // corner
+      [canvasSize / 2 + tileSize, canvasSize / 2 + tileSize / 2], // right top left
+      [canvasSize / 2 + tileSize + tileSize / 2, canvasSize / 2 + tileSize / 2], // top right
+      [canvasSize / 2 + tileSize + tileSize / 2, canvasSize / 2 + tileSize + tileSize / 2], // bottom right
+      [canvasSize / 2 + tileSize / 2, canvasSize / 2 + tileSize + tileSize / 2], // bottom left
+    ];
+    await _drawTile(tiles, viewport, polygon, {
+      debug: false,
+    });
+  }
+  { // top right
+    const viewport = [
+      canvasSize / 2 + tileSize / 2,
+      canvasSize / 2 - tileSize / 2,
+      canvasSize / 2 + tileSize / 2 + tileSize,
+      canvasSize / 2 + tileSize,
+    ];
+    const polygon = [
+      [canvasSize / 2 + tileSize / 2, canvasSize / 2], // left bottom left
+      [canvasSize / 2 + tileSize / 2, canvasSize / 2 - tileSize / 2], // top left
+      [canvasSize / 2 + tileSize + tileSize / 2, canvasSize / 2 - tileSize / 2], // top right
+      [canvasSize / 2 + tileSize + tileSize / 2, canvasSize / 2 + tileSize / 2], // bottom right
+      [canvasSize / 2 + tileSize, canvasSize / 2 + tileSize / 2], // right bottom left
+      [canvasSize / 2 + tileSize, canvasSize / 2], // corner
+    ];
+    await _drawTile(tiles, viewport, polygon, {
+      debug: true,
+    });
+  }
 
   const cssText = `\
     position: fixed;
