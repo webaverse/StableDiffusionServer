@@ -14,6 +14,21 @@ huggingFaceKey = `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`;
     formData.append('height', h);
     return formData;
   };
+  const fillNoise = (canvas, ctx) => {
+    // fills a canvas with noise
+    const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+    const data = imageData.data;
+    for (let i = 0; i < data.length; i += 4) {
+      const r = Math.floor(Math.random() * 256);
+      const g = Math.floor(Math.random() * 256);
+      const b = Math.floor(Math.random() * 256);
+      data[i + 0] = r;
+      data[i + 1] = g;
+      data[i + 2] = b;
+      data[i + 3] = 255;
+    }
+    ctx.putImageData(imageData, 0, 0);
+  };
   function blob2img(blob) {
     const img = new Image();
     const u = URL.createObjectURL(blob);
@@ -82,7 +97,9 @@ huggingFaceKey = `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`;
     fd.append('init_img', srcCanvasBlob);
     const maskCanvasBlob = await canvas2blob(maskCanvas);
     fd.append('init_mask', maskCanvasBlob, 'init_mask.png');
+    fd.append('inpaint_replace', '1.0');
     
+    console.log('edit form data', fd);
     const res = await fetch(`http://stable-diffusion-server.webaverse.com/api`, {
       method: 'POST',
       body: fd,
@@ -137,6 +154,7 @@ huggingFaceKey = `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`;
     srcCanvas.height = h;
     srcCanvas.classList.add('srcCanvas');
     const srcCtx = srcCanvas.getContext('2d');
+    fillNoise(srcCanvas, srcCtx);
     document.body.appendChild(srcCanvas);
 
     const maskCanvas = document.createElement('canvas');
