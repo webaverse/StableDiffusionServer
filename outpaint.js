@@ -1214,19 +1214,21 @@ function canvas2blob(canvas) {
   const tiles = [];
   const _initialTile = async () => {
     const baseImg = await genImg(prompt, tileSize, tileSize);
-    const baseImgPosition = [
+    const viewport = [
       canvasSize / 2,
       canvasSize / 2,
+      canvasSize / 2 + tileSize,
+      canvasSize / 2 + tileSize,
     ];
-    ctx.drawImage(baseImg, baseImgPosition[0], baseImgPosition[1]);
+    ctx.drawImage(baseImg, viewport[0], viewport[1]);
 
     const depthResult = await getDepth(baseImg.blob);
     const image = await blob2img(depthResult);
-    depthCtx.drawImage(image, baseImgPosition[0], baseImgPosition[1]);
+    depthCtx.drawImage(image, viewport[0], viewport[1]);
     
     const tile = {
       img: baseImg,
-      position: baseImgPosition,
+      viewport,
     };
     tiles.push(tile);
   };
@@ -1260,30 +1262,34 @@ function canvas2blob(canvas) {
 
     const _drawMask = (srcCanvas, srcCtx, maskCanvas, maskCtx, tiles) => {
       for (const tile of tiles) {
-        const {img, position} = tile;
+        const {img, viewport} = tile;
         
         // compute position within the viewport
-        const x1 = position[0] - x;
-        const y1 = position[1] - y;
-        const x2 = x1 + img.width;
-        const y2 = y1 + img.height;
-        const w = x2 - x1;
-        const h = y2 - y1;
+        const x1 = viewport[0] - x;
+        const y1 = viewport[1] - y;
+        const x2 = viewport[2] - x;
+        const y2 = viewport[3] - y;
+        const w2 = x2 - x1;
+        const h2 = y2 - y1;
+
+        // console.log('tile position', tile.viewport.join(','), [x, y, w, h], [x1, y1, x2, y2, w2, h2]);
 
         // draw the image at the offset location within the viewport
         srcCtx.drawImage(img, x1, y1);
 
         // the image data covering this mask area
         // note that x1 and y1 might be negative, so we need to offset the values a bit
-        const imageData = maskCtx.getImageData(x1, y1, w, h);
+        const imageData = maskCtx.getImageData(x1, y1, w2, h2);
+        // console.log('got image data', imageData);
 
         // fill the image data based on the distance to the center
-        const cx = w / 2;
-        const cy = h / 2;
-        for (let x = 0; x < imageData.width; x++) {
-          for (let y = 0; y < imageData.height; y++) {
+        // XXX make it based on the center to the target
+        const cx = w2 / 2;
+        const cy = h2 / 2;
+        for (let x = 0; x < w2; x++) {
+          for (let y = 0; y < h2; y++) {
             const d = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
-            const maxD = imageData.width / 2;
+            const maxD = w2 / 2;
             const r = (1 - ((d / maxD) ** 3)) * 255;
             const g = r;
             const b = r;
@@ -1292,7 +1298,7 @@ function canvas2blob(canvas) {
             const i = (y * imageData.width + x) * 4;
             imageData.data[i + 0] = Math.max(r, imageData.data[i + 0]);
             imageData.data[i + 1] = Math.max(g, imageData.data[i + 1]);
-            imageData.data[i + 2] = 1;
+            imageData.data[i + 2] = Math.max(b, imageData.data[i + 2]);
             imageData.data[i + 3] = Math.max(a, imageData.data[i + 3]);
           }
         }
@@ -1304,27 +1310,23 @@ function canvas2blob(canvas) {
 
     // render image
     const baseImg = await editImg(srcCanvas, prompt, maskCanvas);
-    const baseImgPosition = [
-      x,
-      y,
-    ];
     // draw image
-    ctx.drawImage(baseImg, baseImgPosition[0], baseImgPosition[1]);
+    ctx.drawImage(baseImg, viewport[0], viewport[1]);
 
     // render depth
     const depthResult = await getDepth(baseImg.blob);
     const image = await blob2img(depthResult);
     // draw depth
-    depthCtx.drawImage(image, baseImgPosition[0], baseImgPosition[1]);
+    depthCtx.drawImage(image, viewport[0], viewport[1]);
 
     const tile = {
       img: baseImg,
-      position: baseImgPosition,
+      viewport,
     };
     tiles.push(tile);
   };
   // draw tiles
-  await _drawTile(tiles.slice(), [
+  await _drawTile(tiles, [
     canvasSize / 2 + tileSize / 2,
     canvasSize / 2 + tileSize / 2,
     canvasSize / 2 + tileSize / 2 + tileSize,
@@ -1332,14 +1334,16 @@ function canvas2blob(canvas) {
   ], {
     debug: false,
   });
-  await _drawTile(tiles.slice(), [
+  // console.log('drawing second 1');
+  await _drawTile(tiles, [
     canvasSize / 2 + tileSize / 2,
-    canvasSize / 2 - tileSize,
+    canvasSize / 2 - tileSize / 2,
     canvasSize / 2 + tileSize / 2 + tileSize,
-    canvasSize / 2 + tileSize / 2,
+    canvasSize / 2 + tileSize,
   ], {
     debug: true,
   });
+  // console.log('drawing second 2');
 
   const cssText = `\
     position: fixed;
