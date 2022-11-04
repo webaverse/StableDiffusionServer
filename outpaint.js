@@ -1225,16 +1225,7 @@ function canvas2blob(canvas) {
       const y1 = viewport[1] - mainViewport[1];
       const x2 = viewport[2] - mainViewport[0];
       const y2 = viewport[3] - mainViewport[1];
-      // const w2 = x2 - x1;
-      // const h2 = y2 - y1;
-      // const maskViewport = viewport;
-      // const localViewport = [
-      //   x1,
-      //   y1,
-      //   x2,
-      //   y2,
-      // ];
-      // draw the image at the offset location within the viewport
+      // draw the image
       srcCtx.drawImage(img, x1, y1);
     };
   };
