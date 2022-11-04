@@ -1426,16 +1426,12 @@ function canvas2blob(canvas) {
         };
 
         const line = _getLineForViewport(localViewport);
-        // const distance = _distanceToLine([x1, y1], line);
-        // console.log('got distance', distance);
         for (let dx = 0; dx < w2; dx++) {
           for (let dy = 0; dy < h2; dy++) {
             const ax = x1 + dx;
             const ay = y1 + dy;
             
-            // const distance = signedDistanceToRectangle([ax, ay], tile.viewport);
             const distance = _distanceToLine([ax, ay], line);
-            // const d = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
             const d = distance;
             const maxD = Math.min(w2, h2) / 2;
             const r = (1 - ((d / maxD) ** 2)) * 255;
