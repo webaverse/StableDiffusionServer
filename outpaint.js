@@ -1349,6 +1349,30 @@ function canvas2blob(canvas) {
           maskViewport[1] + (maskViewport[3] - maskViewport[1]) / 2,
         ];
 
+        const drawRoundedRectangle = (ctx, rect, radiuses, color) => {
+          // radiuses start at top left, and go clockwise
+          const x = rect[0];
+          const y = rect[1];
+          const w = rect[2] - rect[0];
+          const h = rect[3] - rect[1];
+          ctx.beginPath();
+          ctx.moveTo(x + radiuses[0], y);
+          ctx.lineTo(x + w - radiuses[1], y);
+          ctx.quadraticCurveTo(x + w, y, x + w, y + radiuses[1]);
+          ctx.lineTo(x + w, y + h - radiuses[2]);
+          ctx.quadraticCurveTo(x + w, y + h, x + w - radiuses[2], y + h);
+          ctx.lineTo(x + radiuses[3], y + h);
+          ctx.quadraticCurveTo(x, y + h, x, y + h - radiuses[3]);
+          ctx.lineTo(x, y + radiuses[0]);
+          ctx.quadraticCurveTo(x, y, x + radiuses[0], y);
+          ctx.closePath();
+          
+          // fill with color
+          ctx.fillStyle = color;
+          ctx.fill();
+        };
+
+        };
         const _drawMaskRect = fn => {
           // the image data covering this mask area
           // note that x1 and y1 might be negative, so we need to offset the values a bit
