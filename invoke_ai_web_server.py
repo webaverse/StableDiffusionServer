@@ -130,12 +130,17 @@ class InvokeAIWebServer:
 
             # copy files to args
             # especially for init_img and init_mask
-            for key in request.files:
-                args.add(key, request.files[key])
+            # to do this, we need to create a new dict...
+            new_args = {}
+            for key in args.keys():
+                new_args[key] = args[key]
+            # ...and then copy the files
+            for key in request.files.keys():
+                new_args[key] = request.files[key]
             
-            print("form keys 2: ", args.keys())
+            print("form keys 2: ", new_args.keys())
 
-            return get_png(args)
+            return get_png(new_args)
 
 
         # Keep Server Alive Route
