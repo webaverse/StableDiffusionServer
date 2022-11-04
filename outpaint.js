@@ -56,6 +56,22 @@ function canvas2blob(canvas) {
     }
     ctx.putImageData(imageData, 0, 0);
   };
+  const fillCanvasFromClips = (dstCanvas, dstCtx, srcCanvas) => {
+    const numClips = 200;
+    const minClipSize = 64;
+    const maxClipSize = 256;
+    // fill dstCtx with numClips rectangle clips from srcCanvas, placed randomly
+    for (let i = 0; i < numClips; i++) {
+      const clipW = Math.floor(Math.random() * (maxClipSize - minClipSize) + minClipSize);
+      const clipH = Math.floor(Math.random() * (maxClipSize - minClipSize) + minClipSize);
+      const clipX = Math.floor(Math.random() * (srcCanvas.width - clipW));
+      const clipY = Math.floor(Math.random() * (srcCanvas.height - clipH));
+      const dstX = Math.floor(Math.random() * (dstCanvas.width - clipW));
+      const dstY = Math.floor(Math.random() * (dstCanvas.height - clipH));
+      dstCtx.drawImage(srcCanvas, clipX, clipY, clipW, clipH, dstX, dstY, clipW, clipH);
+      console.log('draw clip', srcCanvas, clipX, clipY, clipW, clipH, dstX, dstY, clipW, clipH);
+    }
+  };
   async function getDepth(blob) {
     const res = await fetch('https://depth.webaverse.com/depth', {
       method: "POST",
@@ -162,11 +178,12 @@ function canvas2blob(canvas) {
     document.body.appendChild(maskCanvas);
 
     const _drawMask = (srcCanvas, srcCtx, maskCanvas, maskCtx, tiles) => {
-      fillNoise(srcCanvas, srcCtx);
-
       for (const tile of tiles) {
         const {img, position} = tile;
         // console.log('draw tile', tile)
+        
+        // fillNoise(srcCanvas, srcCtx);
+        fillCanvasFromClips(srcCanvas, srcCtx, img);
         
         // compute position within the viewport
         const x1 = position[0] - x;
@@ -191,8 +208,8 @@ function canvas2blob(canvas) {
             const d = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
             const maxD = imageData.width / 2;
             const r = (1 - ((d / maxD) ** 3)) * 255;
-            const g = 0;
-            const b = 0;
+            const g = r;
+            const b = r;
             const a = r;
             
             const i = (y * imageData.width + x) * 4;
