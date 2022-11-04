@@ -1,4 +1,5 @@
 huggingFaceKey = `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`;
+prompt = `2D overhead view, full color fantasy height map, mysterious sakura lunar magic forest, trending on artstation, pinterest, studio ghibli`;
 
 //
 
@@ -986,9 +987,6 @@ createSeedImage = (
   const rng = () => (Math.random() * 2) - 1;
   const baseColors = Object.keys(materialColors).map(k => materialColors[k][400].slice(1));
 
-  // const canvas = document.createElement('canvas');
-  // canvas.width = w;
-  // canvas.height = h;
   const canvas = document.createElement('canvas');
   canvas.width = w;
   canvas.height = h;
@@ -1017,8 +1015,42 @@ createSeedImage = (
 
   return canvas;
 };
-mkSdImg = () => {
+makeCharacterSeedImage = () => {
   return createSeedImage(512, 512, 64, 128, 1, 256);
+};
+createFullSeedImage = () => {
+  const rng = () => (Math.random() * 2) - 1;
+  const baseColors = Object.keys(materialColors).map(k => materialColors[k][400].slice(1));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = w;
+  canvas.height = h;
+
+  const ctx = canvas.getContext('2d');
+  ctx.fillStyle = '#fff';
+  ctx.fillRect(0, 0, w, h);
+  // ctx.filter = blur ? `blur(${blur}px) saturate(1.5)` : '';
+
+  const minSize = 64;
+  
+  const baseColor = color ?? baseColors[Math.floor(Math.random() * baseColors.length)];
+  const scheme = new ColorScheme();
+  scheme.from_hex(baseColor)
+    .scheme(monochrome ? 'mono' : 'triade')   
+    // .variation('hard');
+  const colors = scheme.colors();
+
+  for (let i = 0; i < n; i++) {
+    const x = w / 2 + rng() * rw;
+    const y = h / 2 + rng() * rh;
+    const sw = Math.pow(Math.random(), p) * rw;
+    const sh = Math.pow(Math.random(), p) * rh;
+    ctx.fillStyle = '#' + colors[Math.floor(Math.random() * colors.length)];
+
+    ctx.fillRect(x - sw / 2, y - sh / 2, sw, sh);
+  }
+
+  return canvas;
 };
 
 //
@@ -1073,7 +1105,6 @@ function canvas2blob(canvas) {
 (async () => {
   const canvasSize = 2048;
   const tileSize = 512;
-  const prompt = `2D overhead view, full color fantasy height map, mysterious sakura forest, trending on artstation, pinterest, studio ghibli`;
 
   const getFormData = (prompt, w, h) => {
     const formData = new FormData();
@@ -1097,12 +1128,13 @@ function canvas2blob(canvas) {
     }
     ctx.putImageData(imageData, 0, 0);
   };
-  const fillCanvasFromClips = (dstCanvas, dstCtx, srcCanvas) => {
-    const numClips = 200;
-    const minClipSize = 64;
+  const fillCanvasFromClips = (dstCanvas, dstCtx, srcCanvases) => {
+    const numClips = 300;
+    const minClipSize = 128;
     const maxClipSize = 256;
     // fill dstCtx with numClips rectangle clips from srcCanvas, placed randomly
     for (let i = 0; i < numClips; i++) {
+      const srcCanvas = srcCanvases[Math.floor(Math.random() * srcCanvases.length)];
       const clipW = Math.floor(Math.random() * (maxClipSize - minClipSize) + minClipSize);
       const clipH = Math.floor(Math.random() * (maxClipSize - minClipSize) + minClipSize);
       const clipX = Math.floor(Math.random() * (srcCanvas.width + clipW));
@@ -1110,7 +1142,7 @@ function canvas2blob(canvas) {
       const dstX = Math.floor(-clipW + Math.random() * (dstCanvas.width + clipW));
       const dstY = Math.floor(-clipH + Math.random() * (dstCanvas.height + clipH));
       dstCtx.drawImage(srcCanvas, clipX, clipY, clipW, clipH, dstX, dstY, clipW, clipH);
-      console.log('draw clip', srcCanvas, clipX, clipY, clipW, clipH, dstX, dstY, clipW, clipH);
+      // console.log('draw clip', srcCanvas, clipX, clipY, clipW, clipH, dstX, dstY, clipW, clipH);
     }
   };
   async function getDepth(blob) {
@@ -1150,9 +1182,11 @@ function canvas2blob(canvas) {
     // inpaint_replace = opt.inpaint_replace,
     const srcCanvasBlob = await canvas2blob(srcCanvas);
     fd.append('init_img', srcCanvasBlob);
-    const maskCanvasBlob = await canvas2blob(maskCanvas);
-    fd.append('init_mask', maskCanvasBlob, 'init_mask.png');
-    // fd.append('inpaint_replace', '1.0');
+    if (maskCanvas) {
+      const maskCanvasBlob = await canvas2blob(maskCanvas);
+      fd.append('init_mask', maskCanvasBlob, 'init_mask.png');
+      fd.append('inpaint_replace', '1.0');
+    }
     
     console.log('edit form data', fd);
     const res = await fetch(`http://stable-diffusion-server.webaverse.com/api`, {
@@ -1198,7 +1232,9 @@ function canvas2blob(canvas) {
   };
   await _initialTile();
 
-  const _secondTile = async (tiles, viewport) => {
+  const _drawTile = async (tiles, viewport, {
+    debug = false,
+  } = {}) => {
     const x = viewport[0];
     const y = viewport[1];
     const w = viewport[2] - viewport[0];
@@ -1209,22 +1245,22 @@ function canvas2blob(canvas) {
     srcCanvas.height = h;
     srcCanvas.classList.add('srcCanvas');
     const srcCtx = srcCanvas.getContext('2d');
-    document.body.appendChild(srcCanvas);
+    debug && document.body.appendChild(srcCanvas);
 
     const maskCanvas = document.createElement('canvas');
     maskCanvas.width = w;
     maskCanvas.height = h;
     maskCanvas.classList.add('maskCanvas');
     const maskCtx = maskCanvas.getContext('2d');
-    document.body.appendChild(maskCanvas);
+    debug && document.body.appendChild(maskCanvas);
+
+    // fillNoise(srcCanvas, srcCtx);
+    const srcCanvases = tiles.map(t => t.img);
+    fillCanvasFromClips(srcCanvas, srcCtx, srcCanvases);
 
     const _drawMask = (srcCanvas, srcCtx, maskCanvas, maskCtx, tiles) => {
       for (const tile of tiles) {
         const {img, position} = tile;
-        // console.log('draw tile', tile)
-        
-        // fillNoise(srcCanvas, srcCtx);
-        fillCanvasFromClips(srcCanvas, srcCtx, img);
         
         // compute position within the viewport
         const x1 = position[0] - x;
@@ -1239,7 +1275,7 @@ function canvas2blob(canvas) {
 
         // the image data covering this mask area
         // note that x1 and y1 might be negative, so we need to offset the values a bit
-        const imageData = maskCtx.createImageData(w, h);
+        const imageData = maskCtx.getImageData(x1, y1, w, h);
 
         // fill the image data based on the distance to the center
         const cx = w / 2;
@@ -1254,31 +1290,31 @@ function canvas2blob(canvas) {
             const a = r;
             
             const i = (y * imageData.width + x) * 4;
-            imageData.data[i + 0] = r;
-            imageData.data[i + 1] = g;
-            imageData.data[i + 2] = b;
-            imageData.data[i + 3] = a;
+            imageData.data[i + 0] = Math.max(r, imageData.data[i + 0]);
+            imageData.data[i + 1] = Math.max(g, imageData.data[i + 1]);
+            imageData.data[i + 2] = 1;
+            imageData.data[i + 3] = Math.max(a, imageData.data[i + 3]);
           }
         }
         // draw the image data back into the mask
         maskCtx.putImageData(imageData, x1, y1);
-
-        // draw red rectangle covering the tile area
-        // maskCtx.fillStyle = 'red';
-        // maskCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
       }
     };
     _drawMask(srcCanvas, srcCtx, maskCanvas, maskCtx, tiles);
 
+    // render image
     const baseImg = await editImg(srcCanvas, prompt, maskCanvas);
     const baseImgPosition = [
       x,
       y,
     ];
+    // draw image
     ctx.drawImage(baseImg, baseImgPosition[0], baseImgPosition[1]);
 
+    // render depth
     const depthResult = await getDepth(baseImg.blob);
     const image = await blob2img(depthResult);
+    // draw depth
     depthCtx.drawImage(image, baseImgPosition[0], baseImgPosition[1]);
 
     const tile = {
@@ -1287,12 +1323,23 @@ function canvas2blob(canvas) {
     };
     tiles.push(tile);
   };
-  await _secondTile(tiles.slice(), [
+  // draw tiles
+  await _drawTile(tiles.slice(), [
     canvasSize / 2 + tileSize / 2,
     canvasSize / 2 + tileSize / 2,
     canvasSize / 2 + tileSize / 2 + tileSize,
     canvasSize / 2 + tileSize / 2 + tileSize,
-  ]);
+  ], {
+    debug: false,
+  });
+  await _drawTile(tiles.slice(), [
+    canvasSize / 2 + tileSize / 2,
+    canvasSize / 2 - tileSize,
+    canvasSize / 2 + tileSize / 2 + tileSize,
+    canvasSize / 2 + tileSize / 2,
+  ], {
+    debug: true,
+  });
 
   const cssText = `\
     position: fixed;
@@ -1314,8 +1361,14 @@ function canvas2blob(canvas) {
     if (!e.repeat) {
       if (e.code === 'PageDown') {
         currentHeight--;
+        
+        e.preventDefault();
+        e.stopPropagation();
       } else if (e.code === 'PageUp') {
         currentHeight++;
+
+        e.preventDefault();
+        e.stopPropagation();
       }
     }
 
