@@ -1216,6 +1216,66 @@ function canvas2blob(canvas) {
       dstCtx.drawImage(srcCanvas, clipX, clipY, clipW, clipH, dstX, dstY, clipW, clipH);
     }
   };
+  const fillCanvasFromTiles = (srcCanvas, srcCtx, tiles, mainViewport) => {
+    for (const tile of tiles) {
+      const {img, viewport} = tile;
+      
+      // compute position within the viewport
+      const x1 = viewport[0] - mainViewport[0];
+      const y1 = viewport[1] - mainViewport[1];
+      const x2 = viewport[2] - mainViewport[0];
+      const y2 = viewport[3] - mainViewport[1];
+      // const w2 = x2 - x1;
+      // const h2 = y2 - y1;
+      // const maskViewport = viewport;
+      // const localViewport = [
+      //   x1,
+      //   y1,
+      //   x2,
+      //   y2,
+      // ];
+      // draw the image at the offset location within the viewport
+      srcCtx.drawImage(img, x1, y1);
+    };
+  };
+  const fillMaskCanvasFromViewports = (maskCanvas, maskCtx, tiles, mainViewport) => {
+    // draw rects where the viewports are, offset by the main viewport
+    for (const tile of tiles) {
+      const {viewport} = tile;
+      const localViewport = [
+        viewport[0] - mainViewport[0],
+        viewport[1] - mainViewport[1],
+        viewport[2] - mainViewport[0],
+        viewport[3] - mainViewport[1],
+      ];
+      maskCtx.fillStyle = 'rgba(255, 0, 0, 1)';
+      maskCtx.fillRect(
+        localViewport[0],
+        localViewport[1],
+        localViewport[2] - localViewport[0],
+        localViewport[3] - localViewport[1]
+      );
+    };
+    // fill maskCtx with viewports from tiles
+    const line = getLineForViewport(mainViewport);
+    const viewports = tiles.map(tile => tile.viewport);
+    const distances = viewports.map(viewport => distanceToLine(viewport, line));
+    const maxDistance = Math.max(...distances);
+    const minDistance = Math.min(...distances);
+    const distanceRange = maxDistance - minDistance;
+    const distanceToAlpha = distance => {
+      const d = (distance - minDistance) / distanceRange;
+      return 1 - d;
+    };
+    for (let i = 0; i < tiles.length; i++) {
+      const tile = tiles[i];
+      const viewport = tile.viewport;
+      const distance = distances[i];
+      const alpha = distanceToAlpha(distance);
+      maskCtx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
+      maskCtx.fillRect(viewport[0], viewport[1], viewport[2] - viewport[0], viewport[3] - viewport[1]);
+    }
+  };
   async function getDepth(blob) {
     const res = await fetch('https://depth.webaverse.com/depth', {
       method: "POST",
@@ -1318,196 +1378,9 @@ function canvas2blob(canvas) {
     // fillNoise(srcCanvas, srcCtx);
     const srcCanvases = tiles.map(t => t.img);
     fillCanvasFromClips(srcCanvas, srcCtx, srcCanvases);
+    fillCanvasFromTiles(srcCanvas, srcCtx, tiles, mainViewport);
 
-    const _drawMask = (srcCanvas, srcCtx, maskCanvas, maskCtx, tiles) => {
-      for (const tile of tiles) {
-        const {img, viewport} = tile;
-        
-        // compute position within the viewport
-        const x1 = viewport[0] - x;
-        const y1 = viewport[1] - y;
-        const x2 = viewport[2] - x;
-        const y2 = viewport[3] - y;
-        const w2 = x2 - x1;
-        const h2 = y2 - y1;
-        const maskViewport = viewport;
-        const localViewport = [
-          x1,
-          y1,
-          x2,
-          y2,
-        ];
-        // draw the image at the offset location within the viewport
-        srcCtx.drawImage(img, x1, y1);
-
-        const mainViewportCenter = [
-          mainViewport[0] + (mainViewport[2] - mainViewport[0]) / 2,
-          mainViewport[1] + (mainViewport[3] - mainViewport[1]) / 2,
-        ];
-        const maskViewportCenter = [
-          maskViewport[0] + (maskViewport[2] - maskViewport[0]) / 2,
-          maskViewport[1] + (maskViewport[3] - maskViewport[1]) / 2,
-        ];
-
-        const drawRoundedRectangle = (ctx, rect, radiuses, color) => {
-          // radiuses start at top left, and go clockwise
-          const x = rect[0];
-          const y = rect[1];
-          const w = rect[2] - rect[0];
-          const h = rect[3] - rect[1];
-          ctx.beginPath();
-          ctx.moveTo(x + radiuses[0], y);
-          ctx.lineTo(x + w - radiuses[1], y);
-          ctx.quadraticCurveTo(x + w, y, x + w, y + radiuses[1]);
-          ctx.lineTo(x + w, y + h - radiuses[2]);
-          ctx.quadraticCurveTo(x + w, y + h, x + w - radiuses[2], y + h);
-          ctx.lineTo(x + radiuses[3], y + h);
-          ctx.quadraticCurveTo(x, y + h, x, y + h - radiuses[3]);
-          ctx.lineTo(x, y + radiuses[0]);
-          ctx.quadraticCurveTo(x, y, x + radiuses[0], y);
-          ctx.closePath();
-          
-          // fill with color
-          ctx.fillStyle = color;
-          ctx.fill();
-        };
-
-        };
-        const _drawMaskRect = fn => {
-          // the image data covering this mask area
-          // note that x1 and y1 might be negative, so we need to offset the values a bit
-          const imageData = maskCtx.getImageData(x1, y1, w2, h2);
-
-          for (let dx = 0; dx < w2; dx++) {
-            for (let dy = 0; dy < h2; dy++) {
-              let r = fn(dx, dy);
-              r *= 255;
-              const g = r;
-              const b = r;
-              const a = r;
-              
-              const i = (dy * imageData.width + dx) * 4;
-              imageData.data[i + 0] = Math.max(r, imageData.data[i + 0]);
-              imageData.data[i + 1] = Math.max(g, imageData.data[i + 1]);
-              imageData.data[i + 2] = Math.max(b, imageData.data[i + 2]);
-              imageData.data[i + 3] = Math.max(a, imageData.data[i + 3]);
-            }
-          }
-          // draw the image data back into the mask
-          maskCtx.putImageData(imageData, x1, y1);
-        };
-        const _drawRadialGradientRect = () => {
-          const line = getLineForViewport(localViewport);
-          const maxD = Math.min(w2, h2) / 2;
-
-          return _drawMaskRect((dx, dy) => {
-            const ax = x1 + dx;
-            const ay = y1 + dy;
-            
-            const d = distanceToLine([ax, ay], line);
-            const v = (1 - ((d / maxD) ** 2));
-            return v;
-          });
-        };
-        const _drawLinearGradientRect = (cutoffPoint, cutoffAxis, cutoffDirection) => {
-          return _drawMaskRect((dx, dy) => {
-            const ax = x1 + dx;
-            const ay = y1 + dy;
-
-            if (cutoffDirection[0] === 1) {
-              let v = 1 - (ax - cutoffPoint[0]) / (w2 / 2);
-              v = Math.min(Math.max(v, 0), 1);
-              return v;
-            } else if (cutoffDirection[0] === -1) {
-              let v = 1 - (cutoffPoint[0] - ax) / (w2 / 2);
-              v = Math.min(Math.max(v, 0), 1);
-              return v;
-            } else if (cutoffDirection[1] === 1) {
-              let v = 1 - (ay - cutoffPoint[1]) / (h2 / 2);
-              v = Math.min(Math.max(v, 0), 1);
-              return v;
-            } else if (cutoffDirection[1] === -1) {
-              let v = 1 - (cutoffPoint[1] - ay) / (h2 / 2);
-              v = Math.min(Math.max(v, 0), 1);
-              return v;
-            } else {
-              debugger;
-            }
-          });
-        };
-
-        // if the center is on the same axist as the currently rendered viewport, we can do a linear gradient
-        if (maskViewportCenter[0] === mainViewportCenter[0]) { // x same
-          if (maskViewportCenter[1] > mainViewportCenter[1]) { // y greater
-            const cutoffPoint = [
-              localViewport[0] + (localViewport[2] - localViewport[0]) / 2,
-              localViewport[1],
-            ];
-            const cutoffAxis = [
-              0,
-              1,
-            ];
-            const cutoffDirection = [
-              0,
-              1,
-            ];
-            console.log('case 1', [w, h], localViewport, [w2, h2]);
-            _drawLinearGradientRect(cutoffPoint, cutoffAxis, cutoffDirection);
-          } else { // y smaller
-            const cutoffPoint = [
-              localViewport[0] + (localViewport[2] - localViewport[0]) / 2,
-              localViewport[3],
-            ];
-            const cutoffAxis = [
-              0,
-              1,
-            ];
-            const cutoffDirection = [
-              0,
-              -1,
-            ];
-            console.log('case 2');
-            _drawLinearGradientRect(cutoffPoint, cutoffAxis, cutoffDirection);
-          }
-        } else if (maskViewportCenter[1] === mainViewportCenter[1]) { // y same
-          if (maskViewportCenter[0] > mainViewportCenter[0]) { // x greater
-            const cutoffPoint = [
-              localViewport[0],
-              localViewport[1] + (localViewport[3] - localViewport[1]) / 2,
-            ];
-            const cutoffAxis = [
-              1,
-              0,
-            ];
-            const cutoffDirection = [
-              1,
-              0,
-            ];
-            console.log('case 3');
-            _drawLinearGradientRect(cutoffPoint, cutoffAxis, cutoffDirection);
-          } else { // x smaller
-            const cutoffPoint = [
-              localViewport[2],
-              localViewport[1] + (localViewport[3] - localViewport[1]) / 2,
-            ];
-            const cutoffAxis = [
-              1,
-              0,
-            ];
-            const cutoffDirection = [
-              -1,
-              0,
-            ];
-            console.log('case 4');
-            _drawLinearGradientRect(cutoffPoint, cutoffAxis, cutoffDirection);
-          }
-        } else { // else if neither x nor y are the same, we need to do a radial gradient
-          console.log('case 5', [w, h], [w2, h2]);
-          _drawRadialGradientRect();
-        }
-      }
-    };
-    _drawMask(srcCanvas, srcCtx, maskCanvas, maskCtx, tiles);
+    fillMaskCanvasFromViewports(maskCanvas, maskCtx, tiles, mainViewport);
 
     // render image
     const baseImg = await editImg(srcCanvas, prompt, maskCanvas);
@@ -1550,7 +1423,7 @@ function canvas2blob(canvas) {
       debug: true,
     });
   }
-  console.log('top right 2');
+  console.log('top right 2, viewports:', tiles.map(tile => tile.viewport));
 
   const cssText = `\
     position: fixed;
