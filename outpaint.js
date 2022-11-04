@@ -1145,6 +1145,10 @@ function getLineForViewport(viewport) {
 
 
 
+
+
+
+
 //
 
 function blob2img(blob) {
@@ -1178,6 +1182,9 @@ function canvas2blob(canvas) {
   const canvasSize = 2048;
   const tileSize = 512;
 
+  const StackBlur = await import('https://webaverse.github.io/StackBlur/dist/stackblur-es.js');
+  globalThis.StackBlur = StackBlur
+
   const getFormData = (prompt, w, h) => {
     const formData = new FormData();
     formData.append('prompt', prompt);
@@ -1185,7 +1192,7 @@ function canvas2blob(canvas) {
     formData.append('height', h);
     return formData;
   };
-  const fillNoise = (canvas, ctx) => {
+  /* const fillNoise = (canvas, ctx) => {
     // fills a canvas with noise
     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
     const data = imageData.data;
@@ -1199,7 +1206,7 @@ function canvas2blob(canvas) {
       data[i + 3] = 255;
     }
     ctx.putImageData(imageData, 0, 0);
-  };
+  }; */
   const fillCanvasFromClips = (dstCanvas, dstCtx, srcCanvases) => {
     const numClips = 300;
     const minClipSize = 128;
@@ -1223,49 +1230,95 @@ function canvas2blob(canvas) {
       // compute position within the viewport
       const x1 = viewport[0] - mainViewport[0];
       const y1 = viewport[1] - mainViewport[1];
-      const x2 = viewport[2] - mainViewport[0];
-      const y2 = viewport[3] - mainViewport[1];
+      // const x2 = viewport[2] - mainViewport[0];
+      // const y2 = viewport[3] - mainViewport[1];
       // draw the image
       srcCtx.drawImage(img, x1, y1);
     };
   };
   const fillMaskCanvasFromViewports = (maskCanvas, maskCtx, tiles, mainViewport) => {
+    const blurRadius = 100;
+    const blurCanvas = document.createElement('canvas');
+    blurCanvas.width = maskCanvas.width + blurRadius * 2;
+    blurCanvas.height = maskCanvas.height + blurRadius * 2;
+    const blurCtx = blurCanvas.getContext('2d');
+
+    // center of the main viewport
+    const cx = (mainViewport[0] + mainViewport[2]) / 2;
+    const cy = (mainViewport[1] + mainViewport[3]) / 2;
+
     // draw rects where the viewports are, offset by the main viewport
-    for (const tile of tiles) {
+    for (let i = 0; i < tiles.length; i++) {
+      const tile = tiles[i];
       const {viewport} = tile;
+
       const localViewport = [
         viewport[0] - mainViewport[0],
         viewport[1] - mainViewport[1],
         viewport[2] - mainViewport[0],
         viewport[3] - mainViewport[1],
       ];
-      maskCtx.fillStyle = 'rgba(255, 0, 0, 1)';
-      maskCtx.fillRect(
-        localViewport[0],
-        localViewport[1],
+      
+      // if (i !== 0) {
+        const tcx = (viewport[0] + viewport[2]) / 2;
+        const tcy = (viewport[1] + viewport[3]) / 2;
+        if (tcx < cx) {
+          localViewport[0] -= blurRadius;
+          localViewport[2] -= blurRadius;
+          console.log('push 1', i);
+        } else if (tcx > cx) {
+          localViewport[0] += blurRadius;
+          localViewport[2] += blurRadius;
+          console.log('push 2', i);
+        }
+        if (tcy < cy) {
+          localViewport[1] -= blurRadius;
+          localViewport[3] -= blurRadius;
+          console.log('push 3', i);
+        } else if (tcy > cy) {
+          localViewport[1] += blurRadius;
+          localViewport[3] += blurRadius;
+          console.log('push 4', i);
+        }
+      // }
+
+      blurCtx.fillStyle = 'rgba(255, 0, 0, 1)';
+      blurCtx.fillRect(
+        blurRadius + localViewport[0],
+        blurRadius + localViewport[1],
         localViewport[2] - localViewport[0],
         localViewport[3] - localViewport[1]
       );
-    };
-    // fill maskCtx with viewports from tiles
-    const line = getLineForViewport(mainViewport);
-    const viewports = tiles.map(tile => tile.viewport);
-    const distances = viewports.map(viewport => distanceToLine(viewport, line));
-    const maxDistance = Math.max(...distances);
-    const minDistance = Math.min(...distances);
-    const distanceRange = maxDistance - minDistance;
-    const distanceToAlpha = distance => {
-      const d = (distance - minDistance) / distanceRange;
-      return 1 - d;
-    };
-    for (let i = 0; i < tiles.length; i++) {
-      const tile = tiles[i];
-      const viewport = tile.viewport;
-      const distance = distances[i];
-      const alpha = distanceToAlpha(distance);
-      maskCtx.fillStyle = `rgba(0, 0, 0, ${alpha})`;
-      maskCtx.fillRect(viewport[0], viewport[1], viewport[2] - viewport[0], viewport[3] - viewport[1]);
     }
+    // perform a blur
+    StackBlur.canvasRGBA(blurCanvas, 0, 0, blurCanvas.width, blurCanvas.height, blurRadius);
+    // apply power function using imageData
+    {
+      const imageData = blurCtx.getImageData(0, 0, blurCanvas.width, blurCanvas.height);
+      const data = imageData.data;
+      for (let i = 0; i < data.length; i += 4) {
+        const r = data[i + 0];
+        // const g = data[i + 1];
+        // const b = data[i + 2];
+        // const a = data[i + 3];
+        const v = ((r / 255) ** 0.5) * 255;
+        data[i + 0] = v;
+        data[i + 1] = v;
+        data[i + 2] = v;
+        data[i + 3] = v;
+      }
+    }
+    
+    // blurCtx.filter = `blur(${blurRadius}px)`;
+    // blurCtx.drawImage(blurCanvas, 0, 0);
+    // copy over the blurred canvas back to the mask canvas, taking into account the blur radius offset
+    maskCtx.drawImage(
+      blurCanvas,
+      blurRadius, blurRadius,
+      maskCanvas.width, maskCanvas.height,
+      0, 0,
+      maskCanvas.width, maskCanvas.height
+    );
   };
   async function getDepth(blob) {
     const res = await fetch('https://depth.webaverse.com/depth', {
@@ -1287,7 +1340,7 @@ function canvas2blob(canvas) {
     return i;
   }
   async function editImg(srcCanvas, prompt, maskCanvas) {
-    const fd = getFormData(prompt, tileSize, tileSize);
+    const fd = getFormData(prompt, srcCanvas.width, srcCanvas.height);
 
     const srcCanvasBlob = await canvas2blob(srcCanvas);
     fd.append('init_img', srcCanvasBlob);
@@ -1399,10 +1452,10 @@ function canvas2blob(canvas) {
       canvasSize / 2 + tileSize / 2 + tileSize,
     ];
     await _drawTile(tiles, viewport, {
-      debug: false,
+      debug: true,
     });
   }
-  console.log('top right 1');
+  // console.log('top right 1');
   { // top right
     const viewport = [
       canvasSize / 2 + tileSize / 2,
@@ -1411,10 +1464,10 @@ function canvas2blob(canvas) {
       canvasSize / 2 + tileSize,
     ];
     await _drawTile(tiles, viewport, {
-      debug: true,
+      debug: false,
     });
   }
-  console.log('top right 2, viewports:', tiles.map(tile => tile.viewport));
+  // console.log('top right 2, viewports:', tiles.map(tile => tile.viewport));
 
   const cssText = `\
     position: fixed;
