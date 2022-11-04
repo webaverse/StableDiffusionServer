@@ -1356,7 +1356,8 @@ function canvas2blob(canvas) {
 
           for (let dx = 0; dx < w2; dx++) {
             for (let dy = 0; dy < h2; dy++) {
-              const r = fn(dx, dy);
+              let r = fn(dx, dy);
+              r *= 255;
               const g = r;
               const b = r;
               const a = r;
@@ -1380,65 +1381,104 @@ function canvas2blob(canvas) {
             const ay = y1 + dy;
             
             const d = distanceToLine([ax, ay], line);
-            const r = (1 - ((d / maxD) ** 2)) * 255;
-            return r;
+            const v = (1 - ((d / maxD) ** 2));
+            return v;
           });
         };
-        const _drawLinearGradientRect = (cutoffPoint, cutoffDistance) => {
-          /* const line = getLineForViewport(localViewport);
-          const maxD = Math.min(w2, h2) / 2;
-
+        const _drawLinearGradientRect = (cutoffPoint, cutoffAxis, cutoffDirection) => {
           return _drawMaskRect((dx, dy) => {
             const ax = x1 + dx;
             const ay = y1 + dy;
-            
-            const d = distanceToLine([ax, ay], line);
-            const r = (1 - ((d / maxD) ** 2)) * 255;
-            return r;
-          }); */
+
+            if (cutoffDirection[0] === 1) {
+              let v = 1 - (ax - cutoffPoint[0]) / (w2 / 2);
+              v = Math.min(Math.max(v, 0), 1);
+              return v;
+            } else if (cutoffDirection[0] === -1) {
+              let v = 1 - (cutoffPoint[0] - ax) / (w2 / 2);
+              v = Math.min(Math.max(v, 0), 1);
+              return v;
+            } else if (cutoffDirection[1] === 1) {
+              let v = 1 - (ay - cutoffPoint[1]) / (h2 / 2);
+              v = Math.min(Math.max(v, 0), 1);
+              return v;
+            } else if (cutoffDirection[1] === -1) {
+              let v = 1 - (cutoffPoint[1] - ay) / (h2 / 2);
+              v = Math.min(Math.max(v, 0), 1);
+              return v;
+            } else {
+              debugger;
+            }
+          });
         };
 
         // if the center is on the same axist as the currently rendered viewport, we can do a linear gradient
         if (maskViewportCenter[0] === mainViewportCenter[0]) { // x same
           if (maskViewportCenter[1] > mainViewportCenter[1]) { // y greater
             const cutoffPoint = [
-              maskViewport[0] + (maskViewport[2] - maskViewport[0]) / 2,
-              maskViewport[1],
+              localViewport[0] + (localViewport[2] - localViewport[0]) / 2,
+              localViewport[1],
+            ];
+            const cutoffAxis = [
+              0,
+              1,
             ];
             const cutoffDirection = [
               0,
               1,
             ];
-            _drawLinearGradientRect(cutoffPoint, cutoffDirection);
+            console.log('case 1', [w, h], localViewport, [w2, h2]);
+            _drawLinearGradientRect(cutoffPoint, cutoffAxis, cutoffDirection);
           } else { // y smaller
             const cutoffPoint = [
-              maskViewport[0] + (maskViewport[2] - maskViewport[0]) / 2,
-              maskViewport[3],
+              localViewport[0] + (localViewport[2] - localViewport[0]) / 2,
+              localViewport[3],
+            ];
+            const cutoffAxis = [
+              0,
+              1,
             ];
             const cutoffDirection = [
               0,
               -1,
             ];
-            _drawLinearGradientRect(cutoffPoint, cutoffDirection);
+            console.log('case 2');
+            _drawLinearGradientRect(cutoffPoint, cutoffAxis, cutoffDirection);
           }
         } else if (maskViewportCenter[1] === mainViewportCenter[1]) { // y same
           if (maskViewportCenter[0] > mainViewportCenter[0]) { // x greater
             const cutoffPoint = [
-              maskViewport[0],
-              maskViewport[1] + (maskViewport[3] - maskViewport[1]) / 2,
+              localViewport[0],
+              localViewport[1] + (localViewport[3] - localViewport[1]) / 2,
+            ];
+            const cutoffAxis = [
+              1,
+              0,
             ];
             const cutoffDirection = [
               1,
               0,
             ];
-            _drawLinearGradientRect(cutoffPoint, cutoffDirection);
+            console.log('case 3');
+            _drawLinearGradientRect(cutoffPoint, cutoffAxis, cutoffDirection);
           } else { // x smaller
             const cutoffPoint = [
-              maskViewport[2],
-              maskViewport[1] + (maskViewport[3] - maskViewport[1]) / 2,
+              localViewport[2],
+              localViewport[1] + (localViewport[3] - localViewport[1]) / 2,
             ];
+            const cutoffAxis = [
+              1,
+              0,
+            ];
+            const cutoffDirection = [
+              -1,
+              0,
+            ];
+            console.log('case 4');
+            _drawLinearGradientRect(cutoffPoint, cutoffAxis, cutoffDirection);
           }
         } else { // else if neither x nor y are the same, we need to do a radial gradient
+          console.log('case 5', [w, h], [w2, h2]);
           _drawRadialGradientRect();
         }
       }
@@ -1474,6 +1514,7 @@ function canvas2blob(canvas) {
       debug: false,
     });
   }
+  console.log('top right 1');
   { // top right
     const viewport = [
       canvasSize / 2 + tileSize / 2,
@@ -1485,6 +1526,7 @@ function canvas2blob(canvas) {
       debug: true,
     });
   }
+  console.log('top right 2');
 
   const cssText = `\
     position: fixed;
