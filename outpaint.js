@@ -1,5 +1,5 @@
 huggingFaceKey = `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`;
-prompt = `2D overhead view, full color fantasy height map, magical anime lush forest river, trending on artstation, pinterest`;
+prompt = `2D overhead view full color fantasy height map, ancient ocean world, trending on artstation, pinterest`;
 
 //
 
@@ -1326,8 +1326,8 @@ function canvas2blob(canvas) {
   const canvasSize = 2048;
   const tileSize = 512;
 
-  const StackBlur = await import('https://webaverse.github.io/StackBlur/dist/stackblur-es.js');
-  globalThis.StackBlur = StackBlur
+  // const StackBlur = await import('https://webaverse.github.io/StackBlur/dist/stackblur-es.js');
+  // globalThis.StackBlur = StackBlur
 
   const getFormData = (prompt, w, h) => {
     const formData = new FormData();
@@ -1381,10 +1381,17 @@ function canvas2blob(canvas) {
     };
   };
   const fillMaskCanvasFromViewports = (maskCanvas, maskCtx, tiles, mainViewport) => {
+    const cx = (mainViewport[0] + mainViewport[2]) / 2;
+    const cy = (mainViewport[1] + mainViewport[3]) / 2;
+    
     // draw rects where the viewports are, offset by the main viewport
     for (let i = 0; i < tiles.length; i++) {
       const tile = tiles[i];
       const {viewport} = tile;
+
+      const lcx = (viewport[0] + viewport[2]) / 2;
+      const lcy = (viewport[1] + viewport[3]) / 2;
+      const axisMatch = (lcx === cx) || (lcy === cy);
 
       const localViewport = [
         viewport[0] - mainViewport[0],
@@ -1393,73 +1400,46 @@ function canvas2blob(canvas) {
         viewport[3] - mainViewport[1],
       ];
       maskCtx.fillStyle = 'rgba(255, 0, 0, 1)';
-      maskCtx.fillRect(
-        localViewport[0],
-        localViewport[1],
-        localViewport[2] - localViewport[0],
-        localViewport[3] - localViewport[1]
-      );
-
-      /* // make a new mask canvas of the same size
-      const maskCanvas2 = document.createElement('canvas');
-      maskCanvas2.width = maskCanvas.width;
-      maskCanvas2.height = maskCanvas.height;
-      const maskCtx2 = maskCanvas2.getContext('2d');
-
-      // run the mask shader over the image data
-      const srcImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-      const dstImageData = maskCtx2.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
-      const getXyKey = (x, y) => (convertToUint16(x) << 16) | convertToUint16(y);
-
-      // Consume 
-
-      const getNoise = (x, y) => {
-        const distanceToEmpty = getDistanceToEmpty(x, y);
-        const distanceToSide = getDistanceToSide(x, y);
-        const totalDistance = distanceToEmpty + distanceToSide;
-        let v = distanceToEmpty / totalDistance;
-        v *= 255;
-
-        const i = (y * srcImageData.width + x) * 4;
-        dstImageData.data[i + 0] = v;
-        dstImageData.data[i + 1] = v;
-        dstImageData.data[i + 2] = v;
-        dstImageData.data[i + 3] = v;
+      if (axisMatch) {
+        maskCtx.fillRect(
+          localViewport[0],
+          localViewport[1],
+          localViewport[2] - localViewport[0],
+          localViewport[3] - localViewport[1]
+        );
+      } else {
+        // draw an ellipse instead of the rect
+        maskCtx.beginPath();
+        maskCtx.ellipse(
+          (localViewport[0] + localViewport[2]) / 2,
+          (localViewport[1] + localViewport[3]) / 2,
+          (localViewport[2] - localViewport[0]) / 2,
+          (localViewport[3] - localViewport[1]) / 2,
+          0,
+          0,
+          2 * Math.PI
+        );
+        maskCtx.fill();
       }
-      for (let y = 0; y < srcImageData.height; y++) {
-        for (let x = 0; x < srcImageData.width; x++) {
-          getNoise(x, y);
-        }
-      }
-      maskCtx2.putImageData(dstImageData, 0, 0); */
-
+    }
+    {
       // compute the sdf as a Float32Array
-      console.log('sdf 1', maskCanvas);
+      // console.log('sdf 1', maskCanvas);
       const sdf = calcSDF(maskCanvas, {
         cutoff: 1,
         radius: 256,
       });
-      console.log('sdf 2', sdf);
-
-      // render the sdf to a temp canvas
-      const tmpCanvas = document.createElement('canvas');
-      tmpCanvas.classList.add('tmpCanvas');
-      tmpCanvas.width = maskCanvas.width;
-      tmpCanvas.height = maskCanvas.height;
-      const tmpCtx = tmpCanvas.getContext('2d');
-      document.body.appendChild(tmpCanvas);
-      {
-        const tmpImageData = tmpCtx.getImageData(0, 0, tmpCanvas.width, tmpCanvas.height);
-        const tmpData = tmpImageData.data;
-        for (let i = 0; i < tmpData.length; i += 4) {
-          const v = sdf[i / 4] * 255;
-          tmpData[i + 0] = v;
-          tmpData[i + 1] = v;
-          tmpData[i + 2] = v;
-          tmpData[i + 3] = v;
-        }
-        tmpCtx.putImageData(tmpImageData, 0, 0);
+      // console.log('sdf 2', sdf);
+      const maskImageData = maskCtx.getImageData(0, 0, maskCanvas.width, maskCanvas.height);
+      const maskData = maskImageData.data;
+      for (let i = 0; i < maskData.length; i += 4) {
+        const v = sdf[i / 4] * 255;
+        maskData[i + 0] = v;
+        maskData[i + 1] = v;
+        maskData[i + 2] = v;
+        maskData[i + 3] = v;
       }
+      maskCtx.putImageData(maskImageData, 0, 0);
     }
   };
   async function getDepth(blob) {
@@ -1489,7 +1469,7 @@ function canvas2blob(canvas) {
     if (maskCanvas) {
       const maskCanvasBlob = await canvas2blob(maskCanvas);
       fd.append('init_mask', maskCanvasBlob, 'init_mask.png');
-      fd.append('inpaint_replace', '1.0');
+      // fd.append('inpaint_replace', '1.0');
     }
     
     console.log('edit form data', fd);
@@ -1515,6 +1495,25 @@ function canvas2blob(canvas) {
   const depthCtx = depthCanvas.getContext('2d');
   document.body.appendChild(depthCanvas);
 
+  // attach
+  {
+    const cssText = `\
+      position: fixed;
+      top: 0;
+      left: 0;
+      max-width: 100vw;
+      max-height: 100vh;
+      object-fit: contain;
+      z-index: 100;
+      visibility: hidden;
+    `;
+    canvas.style.cssText = cssText;
+    depthCanvas.style.cssText = cssText;
+
+    canvas.style.visibility = 'visible';
+  }
+
+  // render
   const tiles = [];
   const _initialTile = async () => {
     const baseImg = await genImg(prompt, tileSize, tileSize);
@@ -1594,7 +1593,7 @@ function canvas2blob(canvas) {
       canvasSize / 2 + tileSize / 2 + tileSize,
     ];
     await _drawTile(tiles, viewport, {
-      debug: true,
+      debug: false,
     });
   }
   // console.log('top right 1');
@@ -1606,25 +1605,10 @@ function canvas2blob(canvas) {
       canvasSize / 2 + tileSize,
     ];
     await _drawTile(tiles, viewport, {
-      debug: false,
+      debug: true,
     });
   }
   // console.log('top right 2, viewports:', tiles.map(tile => tile.viewport));
-
-  const cssText = `\
-    position: fixed;
-    top: 0;
-    left: 0;
-    max-width: 100vw;
-    max-height: 100vh;
-    object-fit: contain;
-    z-index: 100;
-    visibility: hidden;
-  `;
-  canvas.style.cssText = cssText;
-  depthCanvas.style.cssText = cssText;
-
-  canvas.style.visibility = 'visible';
 
   let currentHeight = 0;
   window.addEventListener('keydown', e => {
