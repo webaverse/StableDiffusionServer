@@ -141,6 +141,7 @@ class InvokeAIWebServer:
             args = MultiDict(new_args)
             
             print("form keys 2: ", args.keys())
+            print("form keys 3: ", args.get("prompt"))
 
             return get_png(args)
 
