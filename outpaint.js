@@ -2,6 +2,33 @@ huggingFaceKey = `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`;
 
 //
 
+function blob2img(blob) {
+  const img = new Image();
+  const u = URL.createObjectURL(blob);
+  const promise = new Promise((accept, reject) => {
+    function cleanup() {
+      URL.revokeObjectURL(u);
+    }
+    img.onload = () => {
+      accept(img);
+      cleanup();
+    };
+    img.onerror = err => {
+      reject(err);
+      cleanup();
+    };
+  });
+  img.crossOrigin = 'Anonymous';
+  img.src = u;
+  img.blob = blob;
+  return promise;
+}
+function canvas2blob(canvas) {
+  return new Promise((accept, reject) => {
+    canvas.toBlob(accept, 'image/png');
+  });
+}
+
 (async () => {
   const canvasSize = 2048;
   const tileSize = 512;
@@ -29,36 +56,7 @@ huggingFaceKey = `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`;
     }
     ctx.putImageData(imageData, 0, 0);
   };
-  function blob2img(blob) {
-    const img = new Image();
-    const u = URL.createObjectURL(blob);
-    const promise = new Promise((accept, reject) => {
-      function cleanup() {
-        URL.revokeObjectURL(u);
-      }
-      img.onload = () => {
-        accept(img);
-        cleanup();
-      };
-      img.onerror = err => {
-        reject(err);
-        cleanup();
-      };
-    });
-    img.crossOrigin = 'Anonymous';
-    img.src = u;
-    img.blob = blob;
-    return promise;
-  }
-  function canvas2blob(canvas) {
-    return new Promise((accept, reject) => {
-      canvas.toBlob(accept, 'image/png');
-    });
-  }
   async function getDepth(blob) {
-    // console.log('send blob', blob);
-    // const blobDataUrl = await blobToDataURL(blob);
-    // console.log('got blob', blobDataUrl);
     const res = await fetch('https://depth.webaverse.com/depth', {
       method: "POST",
       body: blob,
@@ -97,7 +95,7 @@ huggingFaceKey = `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`;
     fd.append('init_img', srcCanvasBlob);
     const maskCanvasBlob = await canvas2blob(maskCanvas);
     fd.append('init_mask', maskCanvasBlob, 'init_mask.png');
-    fd.append('inpaint_replace', '1.0');
+    // fd.append('inpaint_replace', '1.0');
     
     console.log('edit form data', fd);
     const res = await fetch(`http://stable-diffusion-server.webaverse.com/api`, {
@@ -154,7 +152,6 @@ huggingFaceKey = `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`;
     srcCanvas.height = h;
     srcCanvas.classList.add('srcCanvas');
     const srcCtx = srcCanvas.getContext('2d');
-    fillNoise(srcCanvas, srcCtx);
     document.body.appendChild(srcCanvas);
 
     const maskCanvas = document.createElement('canvas');
@@ -164,24 +161,56 @@ huggingFaceKey = `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`;
     const maskCtx = maskCanvas.getContext('2d');
     document.body.appendChild(maskCanvas);
 
-    for (const tile of tiles) {
-      const {img, position} = tile;
-      console.log('draw tile', tile)
-      
-      // draw the image at the offset location within the viewport
-      const dx1 = position[0] - x;
-      const dy1 = position[1] - y;
-      const dx2 = dx1 + img.width;
-      const dy2 = dy1 + img.height;
+    const _drawMask = (srcCanvas, srcCtx, maskCanvas, maskCtx, tiles) => {
+      fillNoise(srcCanvas, srcCtx);
 
-      // draw the image at the offset location within the viewport
-      srcCtx.drawImage(img, dx1, dy1);
+      for (const tile of tiles) {
+        const {img, position} = tile;
+        // console.log('draw tile', tile)
+        
+        // compute position within the viewport
+        const x1 = position[0] - x;
+        const y1 = position[1] - y;
+        const x2 = x1 + img.width;
+        const y2 = y1 + img.height;
+        const w = x2 - x1;
+        const h = y2 - y1;
 
-      // draw red rectangle covering the tile area
-      maskCtx.fillStyle = 'red';
-      console.log('fill rect', dx1, dy1, dx2 - dx1, dy2 - dy1);
-      maskCtx.fillRect(dx1, dy1, dx2 - dx1, dy2 - dy1);
-    }
+        // draw the image at the offset location within the viewport
+        srcCtx.drawImage(img, x1, y1);
+
+        // the image data covering this mask area
+        // note that x1 and y1 might be negative, so we need to offset the values a bit
+        const imageData = maskCtx.createImageData(w, h);
+
+        // fill the image data based on the distance to the center
+        const cx = w / 2;
+        const cy = h / 2;
+        for (let x = 0; x < imageData.width; x++) {
+          for (let y = 0; y < imageData.height; y++) {
+            const d = Math.sqrt(Math.pow(x - cx, 2) + Math.pow(y - cy, 2));
+            const maxD = imageData.width / 2;
+            const r = (1 - ((d / maxD) ** 3)) * 255;
+            const g = 0;
+            const b = 0;
+            const a = r;
+            
+            const i = (y * imageData.width + x) * 4;
+            imageData.data[i + 0] = r;
+            imageData.data[i + 1] = g;
+            imageData.data[i + 2] = b;
+            imageData.data[i + 3] = a;
+          }
+        }
+        // draw the image data back into the mask
+        maskCtx.putImageData(imageData, x1, y1);
+
+        // draw red rectangle covering the tile area
+        // maskCtx.fillStyle = 'red';
+        // maskCtx.fillRect(x1, y1, x2 - x1, y2 - y1);
+      }
+    };
+    _drawMask(srcCanvas, srcCtx, maskCanvas, maskCtx, tiles);
 
     const baseImg = await editImg(srcCanvas, prompt, maskCanvas);
     const baseImgPosition = [
