@@ -137,10 +137,12 @@ class InvokeAIWebServer:
             # ...and then copy the files
             for key in request.files.keys():
                 new_args[key] = request.files[key]
+            # convert to MultiDict
+            args = MultiDict(new_args)
             
-            print("form keys 2: ", new_args.keys())
+            print("form keys 2: ", args.keys())
 
-            return get_png(new_args)
+            return get_png(args)
 
 
         # Keep Server Alive Route
