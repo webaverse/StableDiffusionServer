@@ -1,5 +1,7 @@
-huggingFaceKey = `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`;
-prompt = `2D overhead view color fantasy battle map, mysterious spooky forest, artstation, pinterest`;
+// huggingFaceKey = `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`;
+opeanaiKey = `openai-gpt`;
+// prompt = `2D overhead view fantasy battle map scene, mysterious lush sakura forest, anime drawing, digital art`;
+prompt = `2D overhead view fantasy battle map scene, mysterious dinosaur robot factory, anime video game drawing, trending, winner, digital art`;
 
 //
 
@@ -1421,27 +1423,27 @@ function canvas2blob(canvas) {
         viewport[3] - mainViewport[1],
       ];
       maskCtx.fillStyle = 'rgba(255, 0, 0, 1)';
-      if (axisMatch) {
+      // if (axisMatch) {
         maskCtx.fillRect(
           localViewport[0],
           localViewport[1],
           localViewport[2] - localViewport[0],
           localViewport[3] - localViewport[1]
         );
-      } else {
-        // draw an ellipse instead of the rect
-        maskCtx.beginPath();
-        maskCtx.ellipse(
-          (localViewport[0] + localViewport[2]) / 2,
-          (localViewport[1] + localViewport[3]) / 2,
-          (localViewport[2] - localViewport[0]) / 2,
-          (localViewport[3] - localViewport[1]) / 2,
-          0,
-          0,
-          2 * Math.PI
-        );
-        maskCtx.fill();
-      }
+      // } else {
+      //   // draw an ellipse instead of the rect
+      //   maskCtx.beginPath();
+      //   maskCtx.ellipse(
+      //     (localViewport[0] + localViewport[2]) / 2,
+      //     (localViewport[1] + localViewport[3]) / 2,
+      //     (localViewport[2] - localViewport[0]) / 2,
+      //     (localViewport[3] - localViewport[1]) / 2,
+      //     0,
+      //     0,
+      //     2 * Math.PI
+      //   );
+      //   maskCtx.fill();
+      // }
     }
     {
       // compute the sdf as a Float32Array
@@ -1460,7 +1462,7 @@ function canvas2blob(canvas) {
         maskData[i + 2] = v;
         maskData[i + 3] = v;
       }
-      maskCtx.putImageData(maskImageData, 0, 0);
+      // maskCtx.putImageData(maskImageData, 0, 0);
     }
   };
   async function getDepth(blob) {
@@ -1490,7 +1492,7 @@ function canvas2blob(canvas) {
     if (maskCanvas) {
       const maskCanvasBlob = await canvas2blob(maskCanvas);
       fd.append('init_mask', maskCanvasBlob, 'init_mask.png');
-      // fd.append('inpaint_replace', '1.0');
+      // fd.append('inpaint_replace', '0.0');
     }
     
     console.log('edit form data', fd);
