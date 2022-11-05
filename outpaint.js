@@ -1,5 +1,5 @@
 huggingFaceKey = `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`;
-prompt = `2D overhead view full color fantasy height map, ancient ocean world, trending on artstation, pinterest`;
+prompt = `2D overhead view color fantasy battle map, mysterious spooky forest, artstation, pinterest`;
 
 //
 
@@ -1360,11 +1360,32 @@ function canvas2blob(canvas) {
       const srcCanvas = srcCanvases[Math.floor(Math.random() * srcCanvases.length)];
       const clipW = Math.floor(Math.random() * (maxClipSize - minClipSize) + minClipSize);
       const clipH = Math.floor(Math.random() * (maxClipSize - minClipSize) + minClipSize);
-      const clipX = Math.floor(Math.random() * (srcCanvas.width + clipW));
+      const clipX = Math.floor(Math.random() * (srcCanvas.width - clipW));
       const clipY = Math.floor(Math.random() * (srcCanvas.height - clipH));
       const dstX = Math.floor(-clipW + Math.random() * (dstCanvas.width + clipW));
       const dstY = Math.floor(-clipH + Math.random() * (dstCanvas.height + clipH));
+      
+      // push state
+      // dstCtx.save();
+      
+      // rotate hue with a filter
+      // const hue = Math.floor(Math.random() * 90);
+      // const saturation = 100;
+      // const lightness = 100;
+      // const saturation = 50 + Math.floor(Math.random() * 50);
+      // const lightness = 50 + Math.floor(Math.random() * 50);
+      // const filter = `hue-rotate(${hue}deg)`;
+      // dstCtx.filter = filter;
+      // rotate randomly
+      // const angle = Math.random() * Math.PI * 2;
+      // dstCtx.translate(dstX, dstY);
+      // dstCtx.rotate(angle);
+      // dstCtx.drawImage(srcCanvas, clipX, clipY, clipW, clipH, 0, 0, clipW, clipH);
       dstCtx.drawImage(srcCanvas, clipX, clipY, clipW, clipH, dstX, dstY, clipW, clipH);
+      
+      // pop state
+      // dstCtx.filter = null;
+      // dstCtx.restore();
     }
   };
   const fillCanvasFromTiles = (srcCanvas, srcCtx, tiles, mainViewport) => {
@@ -1593,7 +1614,7 @@ function canvas2blob(canvas) {
       canvasSize / 2 + tileSize / 2 + tileSize,
     ];
     await _drawTile(tiles, viewport, {
-      debug: false,
+      debug: true,
     });
   }
   // console.log('top right 1');
@@ -1605,7 +1626,7 @@ function canvas2blob(canvas) {
       canvasSize / 2 + tileSize,
     ];
     await _drawTile(tiles, viewport, {
-      debug: true,
+      debug: false,
     });
   }
   // console.log('top right 2, viewports:', tiles.map(tile => tile.viewport));
